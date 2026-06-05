@@ -246,6 +246,26 @@ export default function RekeningPage() {
     e.target.value = '';
   };
 
+  const handleExport = () => {
+    const customers = getCustomers(rekening);
+    if (!customers.length) { alert('Tidak ada data rekening untuk diekspor'); return; }
+    const rows = customers
+      .sort((a, b) => b.totalPoints - a.totalPoints)
+      .map(c => ({
+        'No. Rekening': c.displayAccNo,
+        'CIF': c.cif,
+        'Nama': c.name,
+        'Cabang': c.branch,
+        'Saldo Rata-rata': Math.round(c.totalBalance),
+        'Total Poin': c.totalPoints,
+      }));
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [14, 12, 26, 18, 18, 12].map(w => ({ wch: w }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Rekening');
+    XLSX.writeFile(wb, `rekening-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  };
+
   const downloadTemplate = () => {
     const wb = XLSX.utils.book_new();
     // Sheet 1: Sederhana — satu baris per rekening
@@ -290,6 +310,16 @@ export default function RekeningPage() {
           <Button variant="ghost" size="sm" onClick={loadSample}>
             Muat Contoh Data
           </Button>
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-ink-3 hover:text-ink hover:bg-cream border border-line transition-colors"
+            title="Export data nasabah ke Excel"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            Export
+          </button>
           <button
             onClick={downloadTemplate}
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-ink-3 hover:text-ink hover:bg-cream border border-line transition-colors"
