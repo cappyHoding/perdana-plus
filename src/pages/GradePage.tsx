@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { useAppStore } from '../store/useAppStore';
 import { eligibleCustomersFor, fmtRp, fmt } from '../utils/helpers';
 import Button from '../components/ui/Button';
@@ -80,6 +80,41 @@ export default function GradePage() {
 
   const { openModal, closeModal } = useModal();
   const sortedGrades = [...grades].sort((a, b) => b.minPoints - a.minPoints);
+  const importRef = useRef<HTMLInputElement>(null);
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    let rows: unknown[][] = [];
+    if (file.name.match(/\.xlsx?$/i)) {
+      const { read, utils } = await import('xlsx');
+      const buf = await file.arrayBuffer();
+      const wb = read(buf);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
+    } else {
+      const text = await file.text();
+      rows = text.split('\n').map(line => line.split(',').map(c => c.trim().replace(/^"|"$/g, '')));
+    }
+
+    const firstCell = String(rows[0]?.[0] ?? '').toLowerCase();
+    const startRow = firstCell.match(/^(name|nama|grade|no)/) ? 1 : 0;
+    let count = 0;
+    for (const row of rows.slice(startRow)) {
+      const name = String(row[0] ?? '').trim();
+      if (!name) continue;
+      addGrade({
+        name,
+        desc: String(row[1] ?? '').trim(),
+        minPoints: Number(row[2]) || 0,
+        minBalance: Number(row[3]) || 0,
+      });
+      count++;
+    }
+    alert(count > 0 ? `${count} grade berhasil diimpor` : 'Tidak ada data valid ditemukan');
+  };
 
   const openAdd = () => {
     openModal({
@@ -125,12 +160,21 @@ export default function GradePage() {
           </h1>
           <p className="text-sm text-ink-3 mt-1">{grades.length} grade terdaftar</p>
         </div>
-        <Button variant="primary" size="sm" onClick={openAdd}>
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          Tambah Grade
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={() => importRef.current?.click()}>
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Import CSV/Excel
+          </Button>
+          <Button variant="primary" size="sm" onClick={openAdd}>
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Tambah Grade
+          </Button>
+          <input ref={importRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImport} />
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-line overflow-hidden" style={{ boxShadow: 'var(--shadow-sm)' }}>

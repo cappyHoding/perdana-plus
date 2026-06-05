@@ -26,6 +26,7 @@ interface DrawSession {
   slots: DrawSlot[];
   curIx: number;
   sessionWinners: Winner[];
+  skippedWinners: string[];
 }
 
 function buildSession(hadiah: Hadiah[], grades: Grade[]): DrawSession {
@@ -37,7 +38,7 @@ function buildSession(hadiah: Hadiah[], grades: Grade[]): DrawSession {
       slots.push({ hadiah: h, grade: g, slotIx: i + 1, slotTotal: h.qty || 1 });
     }
   });
-  return { slots, curIx: 0, sessionWinners: [] };
+  return { slots, curIx: 0, sessionWinners: [], skippedWinners: [] };
 }
 
 // ─── Confetti ────────────────────────────────────────────────────────────────
@@ -220,6 +221,7 @@ export default function DrawPage() {
     const allWinnerKeys = new Set([
       ...history.map(w => w.customerKey),
       ...session.sessionWinners.map(w => w.customerKey),
+      ...session.skippedWinners,
     ]);
     const eligibles = eligibleCustomersFor(curSlot.grade, rekening).filter(c => !allWinnerKeys.has(c.key));
 
@@ -360,18 +362,24 @@ export default function DrawPage() {
 
   const handleSkip = useCallback(() => {
     if (spinning && !stopped) return;
-    if (!curSlot) return;
-    if (!confirm(`Lewati hadiah "${curSlot.hadiah.name}" unit ${curSlot.slotIx}/${curSlot.slotTotal}?`)) return;
-    session.curIx++;
+    if (!candidate || !curSlot) return;
+    if (!confirm(`Tandai ${candidate.name} sebagai tidak sah dan undi ulang untuk hadiah "${curSlot.hadiah.name}"?`)) return;
+    session.skippedWinners.push(candidate.key);
     setSpinning(false);
     setStopped(false);
     setCandidate(null);
     ACTIVE_POSITIONS.forEach(pos => {
       const parent = rollContainerRefs.current[pos]?.parentElement;
       if (parent) parent.classList.remove('locked');
+      const el = rollContainerRefs.current[pos];
+      if (el) {
+        el.style.transition = 'none';
+        el.style.transform = 'translateY(0px)';
+        el.innerHTML = '<span>—</span>';
+      }
     });
     reRender();
-  }, [spinning, stopped, curSlot, session]);
+  }, [spinning, stopped, candidate, curSlot, session]);
 
   const closeReveal = useCallback(() => {
     setRevealWinner(null);
@@ -563,7 +571,7 @@ export default function DrawPage() {
                 </div>
 
                 {/* Info */}
-                <div className="flex flex-col justify-center gap-3">
+                <div className="flex flex-col items-center justify-center gap-3 text-center">
                   <div className="text-[11px] font-semibold uppercase tracking-widest text-ink-3">
                     Hadiah ke-{session.curIx + 1} dari {totalSlots} · unit {curSlot.slotIx}/{curSlot.slotTotal}
                   </div>
@@ -578,7 +586,7 @@ export default function DrawPage() {
                   >
                     {curSlot.hadiah.name}
                   </h2>
-                  <div className="flex items-center gap-3 flex-wrap">
+                  <div className="flex flex-col items-center gap-2">
                     {curSlot.hadiah.note && (
                       <span className="text-sm text-ink-3">{curSlot.hadiah.note}</span>
                     )}
@@ -672,10 +680,10 @@ export default function DrawPage() {
               >
                 {stopped && candidate ? (
                   <>
-                    <div className="text-white font-semibold text-base" style={{ fontFamily: 'var(--font-display)' }}>
+                    <div className="text-white font-bold" style={{ fontFamily: 'var(--font-display)', fontSize: '48px', lineHeight: 1.1 }}>
                       {candidate.name}
                     </div>
-                    <div className="text-xs mt-0.5 font-mono" style={{ color: 'rgba(245,197,24,.65)' }}>
+                    <div className="text-xs mt-1 font-mono" style={{ color: 'rgba(245,197,24,.65)' }}>
                       {maskAcc(candidate.displayAccNo)} · {candidate.branch}
                     </div>
                   </>
@@ -733,7 +741,7 @@ export default function DrawPage() {
               </button>
               <button
                 onClick={handleSkip}
-                disabled={spinning && !stopped}
+                disabled={!stopped || !candidate}
                 className="px-6 py-3 rounded-xl font-semibold text-sm transition-all hover:bg-white/20 disabled:opacity-30 disabled:cursor-not-allowed"
                 style={{ border: '1.5px solid rgba(44,42,41,.3)', color: 'var(--ink-2)' }}
               >

@@ -160,6 +160,55 @@ export default function HadiahPage() {
 
   const { openModal, closeModal } = useModal();
   const ordered = getOrderedHadiah(hadiah);
+  const importRef = useRef<HTMLInputElement>(null);
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+
+    let rows: unknown[][] = [];
+    if (file.name.match(/\.xlsx?$/i)) {
+      const { read, utils } = await import('xlsx');
+      const buf = await file.arrayBuffer();
+      const wb = read(buf);
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      rows = utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
+    } else {
+      const text = await file.text();
+      rows = text.split('\n').map(line => line.split(',').map(c => c.trim().replace(/^"|"$/g, '')));
+    }
+
+    const firstCell = String(rows[0]?.[0] ?? '').toLowerCase();
+    const startRow = firstCell.match(/^(order|urutan|no|#)/) ? 1 : 0;
+    let count = 0;
+    const errors: string[] = [];
+
+    for (const row of rows.slice(startRow)) {
+      const gradeName = String(row[1] ?? '').trim();
+      const name = String(row[2] ?? '').trim();
+      if (!name) continue;
+      const grade = grades.find(g => g.name.toLowerCase() === gradeName.toLowerCase());
+      if (!grade) {
+        errors.push(`Grade "${gradeName}" tidak ditemukan (hadiah: "${name}")`);
+        continue;
+      }
+      addHadiah({
+        order: Number(row[0]) || 0,
+        gradeId: grade.id,
+        name,
+        note: String(row[3] ?? '').trim(),
+        value: Number(row[4]) || 0,
+        qty: Number(row[5]) || 1,
+        photo: '',
+      });
+      count++;
+    }
+
+    let msg = count > 0 ? `${count} hadiah berhasil diimpor.` : 'Tidak ada data valid ditemukan.';
+    if (errors.length > 0) msg += `\n\nGagal (${errors.length}):\n${errors.join('\n')}`;
+    alert(msg);
+  };
 
   const openAdd = () => {
     const nextOrder = ordered.length > 0 ? ordered[ordered.length - 1].order + 1 : 1;
@@ -211,12 +260,21 @@ export default function HadiahPage() {
             {hadiah.length} hadiah · total {hadiah.reduce((s, h) => s + (h.qty || 1), 0)} unit
           </p>
         </div>
-        <Button variant="primary" size="sm" onClick={openAdd}>
-          <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-          </svg>
-          Tambah Hadiah
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="secondary" size="sm" onClick={() => importRef.current?.click()}>
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Import CSV/Excel
+          </Button>
+          <Button variant="primary" size="sm" onClick={openAdd}>
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            Tambah Hadiah
+          </Button>
+          <input ref={importRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImport} />
+        </div>
       </div>
 
       <div className="bg-white rounded-xl border border-line overflow-hidden" style={{ boxShadow: 'var(--shadow-sm)' }}>
