@@ -228,7 +228,14 @@ export default function DrawPage() {
       return;
     }
 
-    const winner = eligibles[Math.floor(Math.random() * eligibles.length)];
+    // Weighted random by total points (more points = higher probability)
+    const totalPoints = eligibles.reduce((s, c) => s + (c.totalPoints || 1), 0);
+    let rng = Math.random() * totalPoints;
+    let winner = eligibles[eligibles.length - 1];
+    for (const c of eligibles) {
+      rng -= (c.totalPoints || 1);
+      if (rng <= 0) { winner = c; break; }
+    }
     setCandidate(winner);
     setSpinning(true);
     setStopped(false);
@@ -259,51 +266,38 @@ export default function DrawPage() {
       digitRefs.current[pos].targetDigit = accNo[pos] ?? '0';
     });
 
-    // Animation loop
+    // Animation loop — fast spin
     let startTime: number | null = null;
-    const BASE_SPEED = 22; // ms per digit height
+    const BASE_SPEED = 5; // px per ms — fast constant speed
 
     const animate = (ts: number) => {
       if (startTime === null) startTime = ts;
       const elapsed = ts - startTime;
-      const speedFactor = Math.min(1, elapsed / 600); // ramp up over 600ms
 
       if (!stopRequestedRef.current) {
         ACTIVE_POSITIONS.forEach(pos => {
           const el = rollContainerRefs.current[pos];
           if (!el) return;
-          const speed = BASE_SPEED / (0.4 + speedFactor * 0.6);
-          const pos_px = (elapsed / speed) % (10 * digitH);
+          const pos_px = (elapsed * BASE_SPEED) % (10 * digitH);
           el.style.transition = 'none';
           el.style.transform = `translateY(-${pos_px}px)`;
         });
         rafRef.current = requestAnimationFrame(animate);
       } else {
-        // Stop: snap to target digits simultaneously
+        // Stop: snap immediately to target digits (no transition)
         cancelAnimationFrame(rafRef.current);
-
         ACTIVE_POSITIONS.forEach(pos => {
           const el = rollContainerRefs.current[pos];
           if (!el) return;
           const target = digitRefs.current[pos].targetDigit;
-          const targetIndex = parseInt(target, 10);
-          const totalSpans = CYCLES * 10;
-          // Find the last occurrence of target in the roll
-          const targetRow = (CYCLES - 1) * 10 + targetIndex;
-          const targetY = targetRow * digitH;
-          el.style.transition = 'transform 700ms cubic-bezier(.12,.7,.18,1)';
-          el.style.transform = `translateY(-${targetY}px)`;
+          el.style.transition = 'none';
+          el.innerHTML = `<span>${target}</span>`;
+          el.style.transform = 'translateY(0)';
+          const parent = el.parentElement;
+          if (parent) parent.classList.add('locked');
         });
-
-        setTimeout(() => {
-          // Lock glow
-          ACTIVE_POSITIONS.forEach(pos => {
-            const parent = rollContainerRefs.current[pos]?.parentElement;
-            if (parent) parent.classList.add('locked');
-          });
-          if (audio) lockSound();
-          setStopped(true);
-        }, 720);
+        if (audio) lockSound();
+        setStopped(true);
       }
     };
 
@@ -585,7 +579,6 @@ export default function DrawPage() {
                     {curSlot.hadiah.name}
                   </h2>
                   <div className="flex items-center gap-3 flex-wrap">
-                    <span className="text-xl font-bold text-red">{fmtRp(curSlot.hadiah.value)}</span>
                     {curSlot.hadiah.note && (
                       <span className="text-sm text-ink-3">{curSlot.hadiah.note}</span>
                     )}
@@ -856,7 +849,9 @@ export default function DrawPage() {
 
       {/* ── Reveal Overlay ── */}
       <AnimatePresence>
-        {revealWinner && (
+        {revealWinner && (() => {
+          const revealPrizePhoto = hadiah.find(h => h.id === revealWinner.prizeId)?.photo ?? '';
+          return (
           <motion.div
             className="fixed inset-0 z-[90] flex items-center justify-center"
             style={{ background: 'radial-gradient(900px 600px at 50% 30%, #FFE082 0%, #F5C518 50%, #E5B400 100%)' }}
@@ -872,8 +867,8 @@ export default function DrawPage() {
                 background: '#fff',
                 border: '3px solid var(--ink)',
                 borderRadius: '24px',
-                padding: '36px 52px',
-                maxWidth: '600px',
+                padding: '32px 48px',
+                maxWidth: '640px',
                 width: '90%',
                 boxShadow: 'var(--shadow-lg)',
                 position: 'relative',
@@ -885,9 +880,20 @@ export default function DrawPage() {
               transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
             >
               <div className="text-sm font-bold text-red uppercase tracking-widest mb-3">★ Pemenang ★</div>
+
+              {/* Prize photo */}
+              {revealPrizePhoto && (
+                <div
+                  className="mb-4 rounded-2xl overflow-hidden"
+                  style={{ width: 180, height: 180, border: '2px solid var(--yellow-soft)', flexShrink: 0 }}
+                >
+                  <img src={revealPrizePhoto} alt={revealWinner.prizeName} className="w-full h-full object-cover" />
+                </div>
+              )}
+
               <h2
                 className="font-extrabold text-ink leading-tight mb-2"
-                style={{ fontFamily: 'var(--font-display)', fontSize: '52px' }}
+                style={{ fontFamily: 'var(--font-display)', fontSize: '48px' }}
               >
                 {revealWinner.name}
               </h2>
@@ -901,7 +907,7 @@ export default function DrawPage() {
                 {revealWinner.prizeName}
               </div>
               <div className="text-sm text-ink-3 mb-6">
-                {revealWinner.gradeName} · {fmtRp(revealWinner.prizeValue)} · {revealWinner.branch}
+                {revealWinner.gradeName} · {revealWinner.branch}
               </div>
               <button
                 onClick={closeReveal}
@@ -912,7 +918,8 @@ export default function DrawPage() {
               </button>
             </motion.div>
           </motion.div>
-        )}
+          );
+        })()}
       </AnimatePresence>
     </div>
   );
