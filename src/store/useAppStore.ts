@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import type { Rekening, Grade, Hadiah, Winner, AppState } from '../types';
 import { uid } from '../utils/helpers';
+import { idbStorage } from '../utils/idbStorage';
 
 interface AppStore extends AppState {
   isAuthenticated: boolean;
@@ -130,6 +131,7 @@ export const useAppStore = create<AppStore>()(
     }),
     {
       name: 'perdana-undian-v4',
+      storage: createJSONStorage(() => idbStorage),
       partialize: (state) => ({
         period: state.period,
         password: state.password,
