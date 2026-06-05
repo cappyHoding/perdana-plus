@@ -173,7 +173,7 @@ export default function RekeningPage() {
     if (!file) return;
     try {
       const ab = await file.arrayBuffer();
-      const wb = XLSX.read(ab);
+      const wb = XLSX.read(ab, { cellDates: true });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows: Record<string, unknown>[] = XLSX.utils.sheet_to_json(ws);
 
@@ -204,9 +204,12 @@ export default function RekeningPage() {
             });
           }
           const g = groups.get(accNo)!;
-          const dateVal = r['date'] || r['tanggal'] || r['Date'] || r['Tanggal'];
+          const rawDate = r['date'] || r['tanggal'] || r['Date'] || r['Tanggal'];
+          const dateStr = rawDate instanceof Date
+            ? rawDate.toISOString().slice(0, 10)
+            : String(rawDate || '');
           const balVal = Number(r['balance'] || r['saldo'] || r['Balance'] || r['Saldo'] || 0);
-          g.mutations.push({ date: String(dateVal || ''), balance: balVal });
+          g.mutations.push({ date: dateStr, balance: balVal });
         }
         const newReks: Rekening[] = [...groups.values()].map(({ rek, mutations }) => ({
           id: uid(),
