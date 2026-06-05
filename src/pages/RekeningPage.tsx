@@ -160,10 +160,12 @@ export default function RekeningPage() {
     if (!confirm('Ini akan menambahkan 33 rekening contoh. Lanjutkan?')) return;
     const newGrades = sampleGrades();
     const newHadiah = sampleHadiah(newGrades);
-    newGrades.forEach(g => addGrade(g));
-    setHadiah([...hadiah, ...newHadiah]);
-    const reks = sampleRekening();
-    setRekening([...rekening, ...reks]);
+    // Write directly to store so grade IDs are preserved (addGrade regenerates IDs)
+    useAppStore.setState(s => ({
+      grades: [...s.grades, ...newGrades],
+      hadiah: [...s.hadiah, ...newHadiah],
+      rekening: [...s.rekening, ...sampleRekening()],
+    }));
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
