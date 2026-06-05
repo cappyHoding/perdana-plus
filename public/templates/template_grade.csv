@@ -1,0 +1,4 @@
+name,desc,minPoints,minBalance
+Grade A,Nasabah prioritas utama,600,5000000
+Grade B,Nasabah aktif menengah,300,2000000
+Grade C,Nasabah umum,200,0

@@ -82,6 +82,20 @@ export default function GradePage() {
   const sortedGrades = [...grades].sort((a, b) => b.minPoints - a.minPoints);
   const importRef = useRef<HTMLInputElement>(null);
 
+  const downloadTemplate = async () => {
+    const { utils, writeFile } = await import('xlsx');
+    const ws = utils.aoa_to_sheet([
+      ['name', 'desc', 'minPoints', 'minBalance'],
+      ['Grade A', 'Nasabah prioritas utama', 600, 5000000],
+      ['Grade B', 'Nasabah aktif menengah', 300, 2000000],
+      ['Grade C', 'Nasabah umum', 200, 0],
+    ]);
+    ws['!cols'] = [{ wch: 15 }, { wch: 30 }, { wch: 14 }, { wch: 22 }];
+    const wb = utils.book_new();
+    utils.book_append_sheet(wb, ws, 'Grade');
+    writeFile(wb, 'template_grade.xlsx');
+  };
+
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -161,6 +175,16 @@ export default function GradePage() {
           <p className="text-sm text-ink-3 mt-1">{grades.length} grade terdaftar</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={downloadTemplate}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-ink-3 hover:text-ink hover:bg-cream border border-line transition-colors"
+            title="Download file template .xlsx"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Template
+          </button>
           <Button variant="secondary" size="sm" onClick={() => importRef.current?.click()}>
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -174,6 +198,32 @@ export default function GradePage() {
             Tambah Grade
           </Button>
           <input ref={importRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImport} />
+        </div>
+      </div>
+
+      {/* Format hint */}
+      <div
+        className="flex items-start gap-3 rounded-xl px-4 py-3 text-xs text-ink-2"
+        style={{ background: 'var(--yellow-tint)', border: '1px solid var(--yellow-soft)' }}
+      >
+        <svg className="w-4 h-4 mt-0.5 shrink-0 text-warn" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div className="leading-relaxed">
+          <span className="font-semibold">Format CSV/Excel (4 kolom):</span>
+          {' '}
+          <span className="font-mono bg-white/70 px-1 rounded">name</span>
+          {', '}
+          <span className="font-mono bg-white/70 px-1 rounded">desc</span>
+          {', '}
+          <span className="font-mono bg-white/70 px-1 rounded">minPoints</span>
+          {', '}
+          <span className="font-mono bg-white/70 px-1 rounded">minBalance</span>
+          {' — Baris pertama (header) dilewati otomatis. Download '}
+          <button onClick={downloadTemplate} className="underline font-semibold hover:text-ink transition-colors">template .xlsx</button>
+          {' atau '}
+          <a href="/templates/template_grade.csv" download className="underline font-semibold hover:text-ink transition-colors">template .csv</a>
+          {' sebagai panduan.'}
         </div>
       </div>
 

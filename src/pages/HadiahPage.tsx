@@ -162,6 +162,30 @@ export default function HadiahPage() {
   const ordered = getOrderedHadiah(hadiah);
   const importRef = useRef<HTMLInputElement>(null);
 
+  const downloadTemplate = async () => {
+    const { utils, writeFile } = await import('xlsx');
+    // Use real grade names from store, fall back to examples if empty
+    const gradeExamples = grades.length > 0
+      ? grades.map(g => g.name)
+      : ['Grade A', 'Grade B', 'Grade C'];
+    const g0 = gradeExamples[gradeExamples.length - 1] ?? 'Grade C';
+    const g1 = gradeExamples[Math.floor(gradeExamples.length / 2)] ?? 'Grade B';
+    const g2 = gradeExamples[0] ?? 'Grade A';
+    const ws = utils.aoa_to_sheet([
+      ['order', 'gradeName', 'name', 'note', 'value', 'qty'],
+      [1, g0, 'Voucher Belanja', 'Senilai Rp 500.000', 500000, 3],
+      [2, g0, 'Rice Cooker Miyako', '', 450000, 2],
+      [3, g1, 'Mesin Cuci LG', '', 3000000, 2],
+      [4, g1, 'Smart TV 43"', '', 4500000, 2],
+      [5, g2, 'Kulkas 2 Pintu Sharp', '', 5500000, 2],
+      [6, g2, 'Sepeda Motor Honda Beat', 'Grand Prize', 18000000, 1],
+    ]);
+    ws['!cols'] = [{ wch: 8 }, { wch: 18 }, { wch: 28 }, { wch: 22 }, { wch: 12 }, { wch: 6 }];
+    const wb = utils.book_new();
+    utils.book_append_sheet(wb, ws, 'Hadiah');
+    writeFile(wb, 'template_hadiah.xlsx');
+  };
+
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -261,6 +285,16 @@ export default function HadiahPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={downloadTemplate}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-ink-3 hover:text-ink hover:bg-cream border border-line transition-colors"
+            title="Download file template .xlsx (kolom diisi dengan nama grade yang sudah ada)"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Template
+          </button>
           <Button variant="secondary" size="sm" onClick={() => importRef.current?.click()}>
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -274,6 +308,50 @@ export default function HadiahPage() {
             Tambah Hadiah
           </Button>
           <input ref={importRef} type="file" accept=".csv,.xlsx,.xls" className="hidden" onChange={handleImport} />
+        </div>
+      </div>
+
+      {/* Format hint */}
+      <div
+        className="flex items-start gap-3 rounded-xl px-4 py-3 text-xs text-ink-2"
+        style={{ background: 'var(--yellow-tint)', border: '1px solid var(--yellow-soft)' }}
+      >
+        <svg className="w-4 h-4 mt-0.5 shrink-0 text-warn" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div className="leading-relaxed">
+          <span className="font-semibold">Format CSV/Excel (6 kolom):</span>
+          {' '}
+          <span className="font-mono bg-white/70 px-1 rounded">order</span>
+          {', '}
+          <span className="font-mono bg-white/70 px-1 rounded">gradeName</span>
+          {', '}
+          <span className="font-mono bg-white/70 px-1 rounded">name</span>
+          {', '}
+          <span className="font-mono bg-white/70 px-1 rounded">note</span>
+          {', '}
+          <span className="font-mono bg-white/70 px-1 rounded">value</span>
+          {', '}
+          <span className="font-mono bg-white/70 px-1 rounded">qty</span>
+          {' — Kolom '}
+          <span className="font-mono bg-white/70 px-1 rounded">gradeName</span>
+          {' harus sama persis dengan nama grade yang sudah ada. '}
+          {grades.length > 0 && (
+            <>
+              {'Grade terdaftar: '}
+              {grades.map((g, i) => (
+                <span key={g.id}>
+                  <span className="font-mono font-semibold">{g.name}</span>
+                  {i < grades.length - 1 ? ', ' : '. '}
+                </span>
+              ))}
+            </>
+          )}
+          {'Download '}
+          <button onClick={downloadTemplate} className="underline font-semibold hover:text-ink transition-colors">template .xlsx</button>
+          {' atau '}
+          <a href="/templates/template_hadiah.csv" download className="underline font-semibold hover:text-ink transition-colors">template .csv</a>
+          {' sebagai panduan.'}
         </div>
       </div>
 
