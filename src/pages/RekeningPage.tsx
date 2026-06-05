@@ -248,21 +248,29 @@ export default function RekeningPage() {
 
   const downloadTemplate = () => {
     const wb = XLSX.utils.book_new();
-    // Sheet 1: Sederhana
+    // Sheet 1: Sederhana — satu baris per rekening
     const ws1 = XLSX.utils.aoa_to_sheet([
       ['cif', 'accNo', 'name', 'branch', 'balance', 'days'],
       ['CIF001234', '10000022451', 'Budi Santoso', 'Cabang Utama', 5000000, 365],
+      ['CIF001235', '10000022452', 'Siti Rahayu', 'Cabang Selatan', 2000000, 180],
     ]);
     ws1['!cols'] = [10, 14, 24, 18, 14, 8].map(w => ({ wch: w }));
     XLSX.utils.book_append_sheet(wb, ws1, 'Sederhana');
-    // Sheet 2: Mutasi
+    // Sheet 2: Mutasi Saldo — satu baris per perubahan saldo (bukan per hari)
+    // Setiap baris = tanggal saldo BERUBAH ke nilai tersebut
+    // Poin dihitung: floor(saldo/100.000) × jumlah_hari_saldo_berlaku
     const ws2 = XLSX.utils.aoa_to_sheet([
       ['accNo', 'cif', 'name', 'branch', 'date', 'balance'],
+      // Rekening 1 — 3 kali perubahan saldo
       ['10000022451', 'CIF001234', 'Budi Santoso', 'Cabang Utama', '2026-01-01', 5000000],
-      ['10000022451', 'CIF001234', 'Budi Santoso', 'Cabang Utama', '2026-01-02', 5100000],
+      ['10000022451', 'CIF001234', 'Budi Santoso', 'Cabang Utama', '2026-02-15', 5500000],
+      ['10000022451', 'CIF001234', 'Budi Santoso', 'Cabang Utama', '2026-05-10', 4800000],
+      // Rekening 2 — 2 kali perubahan saldo
+      ['10000022452', 'CIF001235', 'Siti Rahayu', 'Cabang Selatan', '2026-01-01', 2000000],
+      ['10000022452', 'CIF001235', 'Siti Rahayu', 'Cabang Selatan', '2026-03-20', 3000000],
     ]);
     ws2['!cols'] = [14, 10, 24, 18, 12, 14].map(w => ({ wch: w }));
-    XLSX.utils.book_append_sheet(wb, ws2, 'Mutasi Harian');
+    XLSX.utils.book_append_sheet(wb, ws2, 'Mutasi Saldo');
     XLSX.writeFile(wb, 'template-rekening.xlsx');
   };
 
@@ -282,6 +290,16 @@ export default function RekeningPage() {
           <Button variant="ghost" size="sm" onClick={loadSample}>
             Muat Contoh Data
           </Button>
+          <button
+            onClick={downloadTemplate}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium text-ink-3 hover:text-ink hover:bg-cream border border-line transition-colors"
+            title="Download file template .xlsx (2 sheet: Sederhana & Mutasi Saldo)"
+          >
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Template
+          </button>
           <Button variant="secondary" size="sm" onClick={() => importRef.current?.click()}>
             <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -295,6 +313,42 @@ export default function RekeningPage() {
             </svg>
             Tambah Rekening
           </Button>
+        </div>
+      </div>
+
+      {/* Format hint */}
+      <div
+        className="flex items-start gap-3 rounded-xl px-4 py-3 text-xs text-ink-2"
+        style={{ background: 'var(--yellow-tint)', border: '1px solid var(--yellow-soft)' }}
+      >
+        <svg className="w-4 h-4 mt-0.5 shrink-0 text-warn" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div className="leading-relaxed space-y-1">
+          <div>
+            <span className="font-semibold">Format Sederhana</span>
+            {' — 1 baris per rekening: '}
+            {['cif', 'accNo', 'name', 'branch', 'balance', 'days'].map((c, i, a) => (
+              <span key={c}><span className="font-mono bg-white/70 px-1 rounded">{c}</span>{i < a.length - 1 ? ', ' : ''}</span>
+            ))}
+            {'. Poin = floor(saldo × hari / 100.000).'}
+          </div>
+          <div>
+            <span className="font-semibold">Format Mutasi Saldo</span>
+            {' — 1 baris per perubahan saldo: '}
+            {['accNo', 'cif', 'name', 'branch', 'date', 'balance'].map((c, i, a) => (
+              <span key={c}><span className="font-mono bg-white/70 px-1 rounded">{c}</span>{i < a.length - 1 ? ', ' : ''}</span>
+            ))}
+            {'. Kolom '}
+            <span className="font-mono bg-white/70 px-1 rounded">date</span>
+            {' = tanggal saldo berubah (format YYYY-MM-DD atau DD/MM/YYYY). Poin dihitung per hari berdasarkan saldo yang berlaku antar tanggal. Download '}
+            <button onClick={downloadTemplate} className="underline font-semibold hover:text-ink transition-colors">template .xlsx</button>
+            {', '}
+            <a href="/templates/template_rekening_sederhana.csv" download className="underline font-semibold hover:text-ink transition-colors">.csv sederhana</a>
+            {', atau '}
+            <a href="/templates/template_rekening_mutasi.csv" download className="underline font-semibold hover:text-ink transition-colors">.csv mutasi</a>
+            {'.'}
+          </div>
         </div>
       </div>
 
