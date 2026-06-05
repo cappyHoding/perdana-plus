@@ -167,15 +167,20 @@ export default function DrawPage() {
   const [fullscreen, setFullscreen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
 
-  // Build/get session
-  const getSession = useCallback(() => {
-    if (!sessionRef.current) {
+  // Build/get session — rebuild whenever hadiah/grades change and draw hasn't started
+  useEffect(() => {
+    const s = sessionRef.current;
+    const notStarted = !s || (s.curIx === 0 && s.sessionWinners.length === 0);
+    if (notStarted) {
       sessionRef.current = buildSession(hadiah, grades);
+      reRender();
     }
-    return sessionRef.current;
-  }, [hadiah, grades]);
+  }, [hadiah, grades]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const session = getSession();
+  if (!sessionRef.current) {
+    sessionRef.current = buildSession(hadiah, grades);
+  }
+  const session = sessionRef.current;
   const curSlot = session.slots[session.curIx] ?? null;
   const totalSlots = session.slots.length;
   const isComplete = session.curIx >= totalSlots;
