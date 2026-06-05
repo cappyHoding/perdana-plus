@@ -411,6 +411,8 @@ export default function DrawPage() {
 
   // ── Empty state check ──
   const isEmpty = rekening.length === 0 || grades.length === 0 || hadiah.length === 0;
+  // Guard: data exists but no prize has a valid matching grade (e.g. corrupted localStorage)
+  const hasNoValidSlots = !isEmpty && totalSlots === 0;
 
   // ── Render helpers ──
   const setRollRef = (pos: number) => (el: HTMLDivElement | null) => {
@@ -489,6 +491,28 @@ export default function DrawPage() {
               </div>
             </div>
           </div>
+
+          {/* ── No valid slots (grade ID mismatch / misconfigured) ── */}
+          {hasNoValidSlots && (
+            <div
+              className="rounded-2xl p-8 text-center"
+              style={{ background: 'rgba(255,255,255,.85)', border: '2px dashed var(--yellow)', boxShadow: 'var(--shadow-md)' }}
+            >
+              <div className="text-2xl mb-2">⚠️</div>
+              <div className="text-base font-semibold text-ink mb-1">Hadiah tidak terhubung ke grade</div>
+              <div className="text-sm text-ink-2 mb-4">
+                Semua hadiah yang terdaftar tidak memiliki grade yang valid. Silakan reset data dan muat ulang, atau periksa pengaturan grade di setiap hadiah.
+              </div>
+              <div className="flex justify-center gap-2 flex-wrap">
+                <button onClick={() => navigate('/hadiah')} className="px-4 py-2 bg-ink text-white text-sm rounded-xl hover:opacity-90 transition">
+                  Cek Daftar Hadiah
+                </button>
+                <button onClick={() => navigate('/grade')} className="px-4 py-2 border border-ink text-ink text-sm rounded-xl hover:bg-white/50 transition">
+                  Cek Grade
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* ── Empty state ── */}
           {isEmpty && (
@@ -578,7 +602,7 @@ export default function DrawPage() {
           )}
 
           {/* ── Complete state ── */}
-          {!isEmpty && isComplete && (
+          {!isEmpty && !hasNoValidSlots && isComplete && (
             <div
               className="rounded-2xl p-8 text-center"
               style={{ background: 'rgba(255,255,255,.9)', border: '2px solid var(--yellow)', boxShadow: 'var(--shadow-lg)' }}
