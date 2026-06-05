@@ -1,0 +1,2000 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Pengundian Tabungan Perdana Plus — BPR Perdana</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --yellow:#F5C518; --yellow-soft:#FFE082; --yellow-tint:#FFF6D0;
+    --cream:#FFFBEB; --red:#D8233E; --red-deep:#B01A30;
+    --ink:#2C2A29; --ink-2:#4B4845; --ink-3:#807C77;
+    --line:#E8E2D2; --line-2:#D9D2BD; --paper:#FFFFFF;
+    --ok:#1F8A5B; --warn:#C77A11;
+    --shadow-sm: 0 1px 2px rgba(44,42,41,.06), 0 1px 1px rgba(44,42,41,.04);
+    --shadow-md: 0 8px 24px rgba(44,42,41,.10), 0 2px 6px rgba(44,42,41,.06);
+    --shadow-lg: 0 30px 80px rgba(44,42,41,.18), 0 8px 24px rgba(44,42,41,.10);
+    --radius: 10px; --radius-lg: 16px;
+    --font-ui: 'Inter', system-ui, -apple-system, sans-serif;
+    --font-display: 'Plus Jakarta Sans','Inter', system-ui, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;background:var(--cream);color:var(--ink);font-family:var(--font-ui);-webkit-font-smoothing:antialiased}
+  button{font-family:inherit;cursor:pointer}
+  input,select,textarea{font-family:inherit;color:inherit}
+  a{color:var(--red);text-decoration:none}
+
+  .app{min-height:100vh;display:flex;flex-direction:column}
+  .topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 22px;background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:50}
+  .brand{display:flex;align-items:center;gap:14px}
+  .brand-mark{width:42px;height:42px;border-radius:10px;background:var(--yellow);display:grid;place-items:center;font-family:var(--font-display);font-weight:800;color:var(--red);font-size:24px;line-height:1;box-shadow:inset 0 0 0 1px rgba(0,0,0,.04)}
+  .brand-text{display:flex;flex-direction:column;line-height:1.05}
+  .brand-text .t1{font-family:var(--font-display);font-weight:800;font-size:15px;letter-spacing:.02em}
+  .brand-text .t1 em{font-style:normal;color:var(--red)}
+  .brand-text .t2{font-size:11px;color:var(--ink-3);letter-spacing:.16em;text-transform:uppercase;margin-top:3px}
+
+  .nav{display:flex;gap:4px;background:var(--cream);padding:4px;border-radius:12px;border:1px solid var(--line)}
+  .nav button{border:0;background:transparent;padding:8px 14px;border-radius:9px;color:var(--ink-2);font-weight:600;font-size:13px;letter-spacing:.01em}
+  .nav button.active{background:#fff;color:var(--ink);box-shadow:var(--shadow-sm)}
+  .nav button:hover:not(.active){color:var(--ink)}
+
+  .top-actions{display:flex;align-items:center;gap:10px}
+  .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--yellow-tint);color:var(--ink-2);font-size:12px;font-weight:600;border:1px solid var(--line-2)}
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--ok)}
+
+  .btn{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--line-2);background:#fff;color:var(--ink);padding:8px 14px;border-radius:9px;font-weight:600;font-size:13px;transition:all .15s ease}
+  .btn:hover{border-color:var(--ink-3)}
+  .btn-primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .btn-primary:hover{background:#000;border-color:#000}
+  .btn-red{background:var(--red);color:#fff;border-color:var(--red)}
+  .btn-red:hover{background:var(--red-deep);border-color:var(--red-deep)}
+  .btn-yellow{background:var(--yellow);color:var(--ink);border-color:#E5B400;font-weight:700}
+  .btn-yellow:hover{background:#E5B400}
+  .btn-ghost{background:transparent;border-color:transparent;color:var(--ink-2)}
+  .btn-ghost:hover{background:var(--cream);color:var(--ink)}
+  .btn-sm{padding:5px 10px;font-size:12px;border-radius:7px}
+  .btn-lg{padding:12px 22px;font-size:15px;border-radius:11px}
+
+  .view{display:none;flex:1}
+  .view.active{display:block}
+
+  .admin-wrap{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 71px)}
+  .side{border-right:1px solid var(--line);background:#fff;padding:22px 14px}
+  .side-section{font-size:11px;text-transform:uppercase;letter-spacing:.14em;color:var(--ink-3);padding:10px 10px 6px}
+  .side a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;color:var(--ink-2);font-weight:500;font-size:13.5px;cursor:pointer}
+  .side a:hover{background:var(--cream);color:var(--ink)}
+  .side a.active{background:var(--yellow-tint);color:var(--ink);font-weight:600}
+  .side a .ico{width:16px;height:16px;color:var(--ink-3)}
+  .side a.active .ico{color:var(--red)}
+  .side-tip{margin-top:30px;padding:14px;background:var(--yellow-tint);border-radius:10px;border:1px solid #EBC774}
+  .side-tip .stk{font-size:11.5px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#7A5800}
+  .side-tip .stv{font-size:12.5px;margin-top:6px;color:var(--ink-2);line-height:1.5}
+
+  .admin-main{padding:28px 32px 60px;background:var(--cream)}
+  .page-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;gap:24px;flex-wrap:wrap}
+  .page-title{font-family:var(--font-display);font-weight:800;font-size:26px;letter-spacing:-.01em;margin:0 0 4px}
+  .page-sub{color:var(--ink-3);font-size:13.5px;margin:0;max-width:640px}
+
+  .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
+  .stat{background:#fff;border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px 18px 16px}
+  .stat .label{font-size:11.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--ink-3);font-weight:600}
+  .stat .value{font-family:var(--font-display);font-weight:800;font-size:30px;letter-spacing:-.02em;margin-top:6px;line-height:1}
+  .stat .meta{font-size:12px;color:var(--ink-3);margin-top:8px}
+  .stat.accent{background:linear-gradient(135deg,var(--yellow) 0%,#FFD23F 100%);border-color:#E5B400}
+  .stat.accent .label{color:var(--ink-2)} .stat.accent .meta{color:var(--ink-2)}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:var(--radius-lg);overflow:hidden}
+  .card + .card{margin-top:18px}
+  .card-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;border-bottom:1px solid var(--line)}
+  .card-head h3{margin:0;font-family:var(--font-display);font-weight:700;font-size:16px}
+  .card-head .sub{font-size:12.5px;color:var(--ink-3);margin-top:2px}
+
+  .toolbar{display:flex;gap:10px;align-items:center;padding:14px 20px;border-bottom:1px solid var(--line);flex-wrap:wrap;background:#FCFAF3}
+  .search{display:flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line-2);border-radius:9px;padding:7px 12px;flex:1;min-width:220px;max-width:320px}
+  .search input{border:0;outline:0;background:transparent;width:100%;font-size:13.5px}
+  .search svg{color:var(--ink-3);flex:0 0 auto}
+
+  table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+  .tbl th{text-align:left;font-weight:600;font-size:11.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);padding:11px 18px;background:#FCFAF3;border-bottom:1px solid var(--line)}
+  .tbl td{padding:14px 18px;border-bottom:1px solid var(--line);vertical-align:middle}
+  .tbl tr:last-child td{border-bottom:0}
+  .tbl tr:hover td{background:#FFFCF1}
+  .num{font-variant-numeric:tabular-nums;font-family:var(--font-mono);font-size:13px}
+  .acc-no{font-family:var(--font-mono);font-size:13px;color:var(--ink-2)}
+  .nasabah{font-weight:600;color:var(--ink)}
+  .muted{color:var(--ink-3)}
+  .tag{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:600}
+  .tag.gold{background:var(--yellow-tint);color:#7A5800;border:1px solid #EBC774}
+  .tag.silver{background:#F1EFEA;color:#5C5751;border:1px solid #DAD4C4}
+  .row-actions{display:flex;gap:4px;justify-content:flex-end;align-items:center}
+  .icon-btn{width:30px;height:30px;border-radius:7px;border:1px solid transparent;background:transparent;display:grid;place-items:center;color:var(--ink-3)}
+  .icon-btn:hover{background:var(--cream);color:var(--ink);border-color:var(--line)}
+  .icon-btn:disabled{opacity:.3;cursor:not-allowed;pointer-events:none}
+  .icon-btn.danger:hover{color:var(--red);background:#FCE6EA;border-color:#F1B8C2}
+
+  .order-cell{display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums;font-family:var(--font-mono);font-size:13px}
+  .order-cell .arrows{display:flex;flex-direction:column;gap:2px}
+  .order-cell .arrows button{
+    width:22px;height:14px;display:grid;place-items:center;border:1px solid var(--line);
+    background:#fff;border-radius:4px;color:var(--ink-3);padding:0;
+  }
+  .order-cell .arrows button:hover{background:var(--cream);color:var(--ink)}
+  .order-cell .arrows button:disabled{opacity:.3;cursor:not-allowed}
+  .order-cell .arrows svg{width:10px;height:10px}
+
+  .empty{padding:48px;text-align:center;color:var(--ink-3)}
+  .empty h4{margin:6px 0;color:var(--ink-2);font-size:15px}
+
+  .form-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+  .field{display:flex;flex-direction:column;gap:6px}
+  .field label{font-size:12.5px;font-weight:600;color:var(--ink-2)}
+  .field .hint{font-size:11.5px;color:var(--ink-3);font-weight:400}
+  .field input, .field select, .field textarea{border:1px solid var(--line-2);border-radius:8px;padding:9px 12px;font-size:13.5px;background:#fff}
+  .field input:focus, .field select:focus, .field textarea:focus{outline:2px solid var(--yellow);border-color:#E5B400}
+
+  .photo-up{display:flex;gap:14px;align-items:center}
+  .photo-preview{width:120px;height:120px;border-radius:12px;background:#FCFAF3;border:2px dashed var(--line-2);display:grid;place-items:center;color:var(--ink-3);font-size:11px;text-align:center;overflow:hidden;flex:0 0 auto}
+  .photo-preview img{width:100%;height:100%;object-fit:cover}
+  .photo-actions{display:flex;flex-direction:column;gap:6px}
+
+  .modal-bg{position:fixed;inset:0;background:rgba(44,42,41,.42);z-index:200;display:none;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(2px)}
+  .modal-bg.show{display:flex}
+  .modal{background:#fff;border-radius:16px;box-shadow:var(--shadow-lg);width:100%;max-width:640px;max-height:90vh;overflow:auto}
+  .modal-head{display:flex;justify-content:space-between;align-items:center;padding:18px 22px;border-bottom:1px solid var(--line)}
+  .modal-head h3{margin:0;font-family:var(--font-display);font-weight:700;font-size:17px}
+  .modal-body{padding:22px}
+  .modal-foot{display:flex;justify-content:flex-end;gap:10px;padding:14px 22px;border-top:1px solid var(--line);background:#FCFAF3}
+
+  .toast-wrap{position:fixed;bottom:20px;right:20px;z-index:300;display:flex;flex-direction:column;gap:8px}
+  .toast{background:var(--ink);color:#fff;padding:11px 16px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:var(--shadow-md);display:flex;align-items:center;gap:8px;animation:tIn .25s ease}
+  .toast.ok{background:#1F8A5B} .toast.err{background:var(--red-deep)}
+  @keyframes tIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  /* LOGIN */
+  .login-wrap{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;background:radial-gradient(900px 600px at 50% 30%,#FFE082 0%,var(--yellow) 50%,#E5B400 100%);padding:24px}
+  .login-card{width:100%;max-width:420px;background:#fff;border-radius:18px;padding:32px 32px 28px;box-shadow:var(--shadow-lg);border:1px solid #E5B400}
+  .login-card .lg-mark{width:56px;height:56px;border-radius:14px;background:var(--yellow);display:grid;place-items:center;font-family:var(--font-display);font-weight:800;color:var(--red);font-size:32px;margin-bottom:18px;box-shadow:inset 0 0 0 1px rgba(0,0,0,.04)}
+  .login-card h2{font-family:var(--font-display);font-weight:800;font-size:22px;letter-spacing:-.01em;margin:0 0 4px}
+  .login-card h2 em{font-style:normal;color:var(--red)}
+  .login-card p{margin:0 0 20px;color:var(--ink-3);font-size:13.5px}
+  .login-card .field{margin-bottom:14px}
+  .login-card .field input{padding:11px 14px;font-size:14px}
+  .login-card .err{color:var(--red);font-size:12px;font-weight:600;margin-top:-6px;margin-bottom:10px;display:none}
+  .login-hint{margin-top:14px;padding:10px 12px;background:var(--yellow-tint);border-radius:8px;font-size:11.5px;color:var(--ink-2);text-align:center}
+  .login-hint code{font-family:var(--font-mono);font-weight:600;color:var(--red)}
+
+  /* ============================================================
+     DRAWING SCREEN (compact)
+     ============================================================ */
+  .draw-view{
+    background:radial-gradient(1400px 800px at 50% -10%,#FFE082 0%,var(--yellow) 35%,#E5B400 100%);
+    min-height:calc(100vh - 71px);position:relative;overflow:hidden;
+  }
+  .draw-view::before{
+    content:"";position:absolute;inset:0;
+    background:
+      radial-gradient(circle at 10% 18%, rgba(255,255,255,.30) 0 90px, transparent 91px),
+      radial-gradient(circle at 88% 14%, rgba(255,255,255,.22) 0 130px, transparent 131px),
+      radial-gradient(circle at 18% 92%, rgba(255,255,255,.20) 0 160px, transparent 161px),
+      radial-gradient(circle at 84% 80%, rgba(255,255,255,.18) 0 110px, transparent 111px);
+    pointer-events:none;
+  }
+  .draw-shell{position:relative;z-index:2;padding:16px 28px 18px;max-width:1500px;margin:0 auto;display:flex;flex-direction:column;gap:14px;min-height:calc(100vh - 71px)}
+
+  .draw-head{display:flex;justify-content:space-between;align-items:center;gap:20px}
+  .draw-title{display:flex;flex-direction:column;line-height:1}
+  .draw-title .kicker{font-size:11.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-2);font-weight:700}
+  .draw-title h1{font-family:var(--font-display);font-weight:800;font-size:26px;letter-spacing:-.02em;color:var(--ink);margin:5px 0 0}
+  .draw-title h1 em{font-style:normal;color:var(--red)}
+
+  .draw-head-right{display:flex;gap:8px;align-items:center}
+  .period-chip{background:#fff;border-radius:10px;padding:7px 12px;border:1px solid #E5B400;box-shadow:var(--shadow-sm);display:flex;flex-direction:column;align-items:flex-end;gap:0px}
+  .period-chip .l{font-size:9.5px;text-transform:uppercase;letter-spacing:.16em;color:var(--ink-3);font-weight:600}
+  .period-chip .v{font-family:var(--font-display);font-weight:700;font-size:13px}
+  .progress-chip{
+    background:var(--ink);color:#fff;border-radius:10px;padding:8px 14px;font-family:var(--font-display);font-weight:700;font-size:13px;
+    display:flex;flex-direction:column;align-items:flex-start;gap:0;
+  }
+  .progress-chip .pl{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--yellow);font-weight:600}
+  .progress-chip .pv{font-size:13px}
+  .audio-toggle{width:36px;height:36px;border-radius:10px;background:#fff;border:1px solid #E5B400;display:grid;place-items:center;color:var(--ink);box-shadow:var(--shadow-sm)}
+  .audio-toggle.muted{color:var(--ink-3)}
+
+  /* MAIN STAGE: compact */
+  .big-stage{
+    background:#fff;border-radius:20px;border:1px solid #E5B400;box-shadow:var(--shadow-lg);
+    padding:18px 26px 20px;display:flex;flex-direction:column;gap:14px;
+    position:relative;overflow:hidden;
+  }
+  .big-stage::before{
+    content:"";position:absolute;inset:0;
+    background:radial-gradient(circle at 50% -10%, rgba(245,197,24,.18), transparent 60%);
+    pointer-events:none;
+  }
+  .big-row{display:grid;grid-template-columns:240px 1fr;gap:24px;align-items:center;position:relative;z-index:1}
+
+  .prize-photo-wrap{
+    width:100%;aspect-ratio:1/1;border-radius:14px;background:linear-gradient(135deg,#FFF6D0 0%,#FFE082 100%);
+    border:1px solid #E5B400;overflow:hidden;position:relative;
+    box-shadow:inset 0 0 0 1px rgba(0,0,0,.04), 0 8px 22px rgba(0,0,0,.08);
+    display:grid;place-items:center;
+  }
+  .prize-photo-wrap img{width:100%;height:100%;object-fit:cover;display:block}
+  .prize-photo-placeholder{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--ink-2);text-align:center;padding:18px}
+  .prize-photo-placeholder svg{width:64px;height:64px;color:var(--red);opacity:.5}
+  .prize-photo-placeholder div{font-family:var(--font-display);font-weight:700;font-size:14px;color:var(--ink-2)}
+  .prize-photo-placeholder small{font-size:11px;color:var(--ink-3)}
+
+  .prize-info{display:flex;flex-direction:column;gap:4px;position:relative;z-index:1;min-width:0}
+  .prize-info .pi-kicker{font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-3);font-weight:700}
+  .prize-info .pi-name{font-family:var(--font-display);font-weight:800;font-size:38px;letter-spacing:-.02em;color:var(--ink);line-height:1.05;margin:6px 0 4px;text-wrap:balance}
+  .prize-info .pi-meta{display:flex;flex-wrap:wrap;gap:12px;color:var(--ink-2);font-size:13.5px;font-weight:500;margin-top:4px}
+  .prize-info .pi-meta .pm-item{display:flex;align-items:center;gap:6px}
+  .prize-info .pi-meta .pm-item b{color:var(--red);font-weight:700}
+
+  /* REEL — compact */
+  .reel-section{
+    width:100%;background:linear-gradient(180deg,#1a1817 0%,#2C2A29 100%);
+    border-radius:16px;padding:16px 18px 18px;border:2px solid #E5B400;position:relative;
+    display:flex;flex-direction:column;align-items:center;gap:10px;
+  }
+  .reel-section::before{content:"";position:absolute;inset:6px;border-radius:11px;border:1px dashed rgba(245,197,24,.30);pointer-events:none}
+  .reel-label{font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--yellow);font-weight:700;position:relative;z-index:1}
+  .reel{display:flex;gap:6px;justify-content:center;position:relative;z-index:1;flex-wrap:nowrap}
+  .digit{
+    width:54px;height:78px;border-radius:9px;background:#0f0e0d;color:var(--yellow);
+    font-family:var(--font-mono);font-weight:600;font-size:50px;
+    display:grid;place-items:center;line-height:1;
+    box-shadow:inset 0 0 0 1px rgba(245,197,24,.18), inset 0 -10px 20px rgba(245,197,24,.08);
+    overflow:hidden;position:relative;
+  }
+  .digit.locked{box-shadow:inset 0 0 0 2px var(--red), 0 0 14px rgba(216,35,62,.55)}
+  .digit.mask{
+    color:rgba(245,197,24,.55);font-size:42px;
+    box-shadow:inset 0 0 0 1px rgba(245,197,24,.10);
+    background:#181613;
+  }
+  .digit .roll{display:flex;flex-direction:column}
+  .digit .roll span{height:78px;display:grid;place-items:center}
+  .name-plate{
+    margin-top:2px;background:rgba(245,197,24,.10);border:1px solid rgba(245,197,24,.30);
+    border-radius:10px;padding:10px 22px;color:#fff;text-align:center;min-width:320px;
+    position:relative;z-index:1;
+  }
+  .name-plate .nm{font-family:var(--font-display);font-weight:700;font-size:20px;letter-spacing:.01em}
+  .name-plate .meta{font-size:11.5px;color:#FFD23F;letter-spacing:.06em;margin-top:2px;font-family:var(--font-mono)}
+
+  .draw-controls{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap}
+  .btn-spin{
+    background:var(--red);color:#fff;border:0;padding:14px 36px;border-radius:12px;
+    font-family:var(--font-display);font-weight:800;font-size:18px;letter-spacing:.04em;text-transform:uppercase;
+    box-shadow:0 6px 0 var(--red-deep), 0 10px 20px rgba(216,35,62,.30);
+    transition:transform .08s ease, box-shadow .08s ease;
+  }
+  .btn-spin:hover{transform:translateY(-1px)}
+  .btn-spin:active{transform:translateY(3px);box-shadow:0 3px 0 var(--red-deep)}
+  .btn-spin:disabled{background:#999;box-shadow:0 4px 0 #777;cursor:not-allowed}
+  .btn-stop{
+    background:#1a1817;color:var(--yellow);border:0;padding:14px 30px;border-radius:12px;
+    font-family:var(--font-display);font-weight:800;font-size:16px;letter-spacing:.04em;text-transform:uppercase;
+    box-shadow:0 6px 0 #000, 0 10px 18px rgba(0,0,0,.22);
+  }
+  .btn-stop:active{transform:translateY(3px);box-shadow:0 3px 0 #000}
+  .btn-stop:disabled{background:#999;color:#ddd;box-shadow:0 4px 0 #777;cursor:not-allowed}
+  .btn-confirm{background:var(--ink);color:#fff;border:0;padding:14px 22px;border-radius:12px;font-family:var(--font-display);font-weight:700;font-size:14px;letter-spacing:.06em;text-transform:uppercase}
+  .btn-confirm:disabled{opacity:.4;cursor:not-allowed}
+  .btn-skip{background:transparent;color:var(--ink);border:1px solid var(--ink);padding:14px 18px;border-radius:12px;font-weight:600;font-size:13px}
+
+  /* WINNERS DRAWER */
+  .winners-tab{
+    position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:90;
+    background:var(--ink);color:var(--yellow);padding:18px 12px;border-radius:14px 0 0 14px;
+    cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:10px;
+    box-shadow:var(--shadow-md);border:1px solid #E5B400;border-right:0;
+    font-family:var(--font-display);font-weight:700;
+  }
+  .winners-tab .wt-ct{background:var(--red);color:#fff;padding:3px 10px;border-radius:999px;font-size:13px;min-width:30px;text-align:center}
+  .winners-tab .wt-lbl{writing-mode:vertical-rl;transform:rotate(180deg);font-size:13px;letter-spacing:.18em;text-transform:uppercase}
+  .winners-drawer{
+    position:fixed;top:0;right:0;bottom:0;width:420px;z-index:95;background:#fff;
+    box-shadow:-30px 0 60px rgba(0,0,0,.18);border-left:1px solid #E5B400;
+    transform:translateX(100%);transition:transform .3s cubic-bezier(.2,.8,.2,1);
+    display:flex;flex-direction:column;
+  }
+  .winners-drawer.open{transform:translateX(0)}
+  .winners-drawer-head{padding:18px 22px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(180deg,#FFFBEB 0%,#fff 100%)}
+  .winners-drawer-head h3{margin:0;font-family:var(--font-display);font-weight:800;font-size:18px}
+  .winners-drawer-head .ct{font-size:12px;color:var(--ink-3);font-weight:600;margin-top:2px}
+  .winners-list{padding:14px;display:flex;flex-direction:column;gap:8px;overflow:auto;flex:1}
+  .w-item{display:flex;gap:12px;padding:12px;border-radius:11px;background:#FFFBEB;border:1px solid var(--line)}
+  .w-item .ix{width:28px;height:28px;border-radius:8px;background:var(--ink);color:var(--yellow);display:grid;place-items:center;font-size:12px;font-weight:700;flex:0 0 auto;font-family:var(--font-display)}
+  .w-item .body{flex:1;min-width:0}
+  .w-item .nm{font-size:14px;font-weight:700;line-height:1.25;color:var(--ink)}
+  .w-item .meta{font-size:11.5px;color:var(--ink-3);margin-top:3px;font-family:var(--font-mono)}
+  .w-item .pz{font-size:12px;color:var(--red);font-weight:700;margin-top:4px}
+
+  /* REVEAL */
+  .reveal{position:fixed;inset:0;z-index:400;display:none;align-items:center;justify-content:center;background:radial-gradient(800px 800px at 50% 50%,rgba(245,197,24,.95),rgba(229,180,0,.98))}
+  .reveal.show{display:flex;animation:rIn .4s ease}
+  @keyframes rIn{from{opacity:0}to{opacity:1}}
+  .reveal-card{background:#fff;border-radius:24px;padding:36px 52px;max-width:760px;text-align:center;border:3px solid var(--ink);box-shadow:var(--shadow-lg)}
+  .reveal-kicker{font-size:13px;letter-spacing:.3em;text-transform:uppercase;color:var(--red);font-weight:800}
+  .reveal-name{font-family:var(--font-display);font-weight:800;font-size:52px;letter-spacing:-.02em;line-height:1;margin:16px 0 6px;text-wrap:balance}
+  .reveal-meta{font-family:var(--font-mono);font-size:16px;color:var(--ink-3);margin-bottom:18px;letter-spacing:.06em}
+  .reveal-prize{background:var(--ink);color:var(--yellow);padding:14px 24px;border-radius:14px;font-family:var(--font-display);font-weight:700;font-size:18px;display:inline-block}
+  .reveal-actions{margin-top:20px;display:flex;justify-content:center;gap:10px}
+
+  .banner{background:#fff;border:1px dashed var(--line-2);border-radius:14px;padding:28px;text-align:center;color:var(--ink-3)}
+  .banner h3{margin:0 0 6px;color:var(--ink);font-family:var(--font-display);font-weight:700;font-size:18px}
+
+  .mut-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
+  .mut-grid > div{padding:18px 20px}
+  .mut-grid > div + div{border-left:1px solid var(--line)}
+
+  body.fs .topbar{display:none}
+  body.fs .draw-view{min-height:100vh}
+  body.fs .draw-shell{min-height:100vh;padding-top:20px}
+
+  /* compact for laptop */
+  @media (max-height: 820px){
+    .draw-shell{padding:12px 24px 14px;gap:10px}
+    .big-stage{padding:14px 22px 16px;gap:10px}
+    .big-row{grid-template-columns:200px 1fr;gap:20px}
+    .prize-info .pi-name{font-size:32px}
+    .reel-section{padding:12px 16px 14px;gap:8px}
+    .digit{width:48px;height:68px;font-size:44px}
+    .digit.mask{font-size:36px}
+    .digit .roll span{height:68px}
+    .name-plate{padding:8px 18px;min-width:280px}
+    .name-plate .nm{font-size:17px}
+    .btn-spin{padding:12px 32px;font-size:16px}
+    .btn-stop{padding:12px 26px;font-size:15px}
+    .btn-confirm{padding:12px 20px;font-size:13px}
+    .btn-skip{padding:12px 16px;font-size:12.5px}
+  }
+  @media (max-width: 980px){
+    .big-row{grid-template-columns:1fr}
+    .winners-drawer{width:100%}
+  }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-wrap" id="login">
+  <div class="login-card">
+    <div class="lg-mark">p</div>
+    <h2>BPR <em>perdana</em></h2>
+    <p>Sistem Pengundian Tabungan Perdana Plus. Silakan masuk untuk melanjutkan.</p>
+    <div class="field"><label>Password Admin</label><input id="lg-pw" type="password" placeholder="Masukkan password" /></div>
+    <div class="err" id="lg-err">Password salah.</div>
+    <button class="btn btn-primary btn-lg" id="lg-btn" style="width:100%;justify-content:center">Masuk</button>
+    <div class="login-hint">Default password: <code>perdana2026</code> · dapat diubah di pengaturan.</div>
+  </div>
+</div>
+
+<div class="app" id="app" style="display:none">
+
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">p</div>
+      <div class="brand-text">
+        <div class="t1">BPR <em>perdana</em></div>
+        <div class="t2">Sistem Pengundian · Tabungan Perdana Plus</div>
+      </div>
+    </div>
+
+    <div class="nav" role="tablist">
+      <button data-view="dashboard" class="active">Dashboard</button>
+      <button data-view="rekening">Rekening</button>
+      <button data-view="grade">Grade</button>
+      <button data-view="hadiah">Hadiah</button>
+      <button data-view="riwayat">Riwayat</button>
+      <button data-view="draw" style="background:var(--ink);color:#fff">▶ Layar Pengundian</button>
+    </div>
+
+    <div class="top-actions">
+      <span class="pill"><span class="dot"></span> Periode <span id="periodLabel">2026</span></span>
+      <button class="btn btn-sm" id="btnSettings">Pengaturan</button>
+      <button class="btn btn-sm btn-ghost" id="btnLogout">Keluar</button>
+    </div>
+  </header>
+
+  <!-- DASHBOARD -->
+  <section class="view active" id="view-dashboard">
+    <div class="admin-wrap">
+      <aside class="side" data-side></aside>
+      <main class="admin-main">
+        <div class="page-head">
+          <div>
+            <h1 class="page-title">Ringkasan Pengundian</h1>
+            <p class="page-sub">Pantau persiapan pengundian hadiah Tabungan Perdana Plus periode berjalan.</p>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn" data-view="rekening">Kelola Rekening</button>
+            <button class="btn btn-yellow" data-view="draw">▶ Buka Layar Pengundian</button>
+          </div>
+        </div>
+
+        <div class="stat-grid">
+          <div class="stat"><div class="label">Total Nasabah</div><div class="value" id="kpi-nasabah">0</div><div class="meta" id="kpi-rek-sub">— rekening</div></div>
+          <div class="stat"><div class="label">Total Poin</div><div class="value" id="kpi-poin">0</div><div class="meta">Akumulasi seluruh nasabah</div></div>
+          <div class="stat"><div class="label">Grade Hadiah</div><div class="value" id="kpi-grade">0</div><div class="meta" id="kpi-grade-sub">— hadiah terdaftar</div></div>
+          <div class="stat accent"><div class="label">Status</div><div class="value" id="kpi-status">Siap</div><div class="meta" id="kpi-status-sub">Klik “Mulai Pengundian”</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div><h3>Distribusi Nasabah per Grade</h3><div class="sub">Nasabah berpoin tinggi otomatis ikut juga di grade lebih rendah.</div></div></div>
+          <table class="tbl" id="dist-tbl">
+            <thead><tr><th>Grade</th><th>Min. Poin</th><th>Min. Saldo Terakhir</th><th>Jumlah Hadiah</th><th>Nasabah Eligible</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><div><h3>Top 10 Nasabah Berdasarkan Poin</h3><div class="sub">Poin gabungan dari seluruh rekening Tabungan Perdana Plus milik nasabah.</div></div></div>
+          <table class="tbl" id="top-tbl">
+            <thead><tr><th>#</th><th>Nasabah</th><th>Rekening Utama</th><th style="text-align:right">Jumlah Rekening</th><th style="text-align:right">Poin Total</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <!-- REKENING -->
+  <section class="view" id="view-rekening">
+    <div class="admin-wrap">
+      <aside class="side" data-side></aside>
+      <main class="admin-main">
+        <div class="page-head">
+          <div>
+            <h1 class="page-title">Data Rekening</h1>
+            <p class="page-sub">Tiap baris adalah 1 rekening Tabungan Perdana Plus. 1 nasabah bisa memiliki beberapa rekening — poinnya otomatis digabung memakai CIF/nama.</p>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn" id="btnImportSample">Muat Contoh Data</button>
+            <button class="btn" id="btnImportXLSX">Import Excel/CSV</button>
+            <input type="file" id="fileImport" accept=".csv,.xlsx,.xls" hidden />
+            <button class="btn btn-primary" id="btnAddRek">+ Tambah Rekening</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="toolbar">
+            <div class="search">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+              <input id="rek-search" placeholder="Cari nama, CIF, atau nomor rekening…" />
+            </div>
+            <select id="rek-grade-filter" class="btn"><option value="">Semua Grade</option></select>
+            <div style="margin-left:auto;font-size:12px;color:var(--ink-3)" id="rek-count">0 rekening</div>
+          </div>
+          <table class="tbl" id="rek-tbl">
+            <thead>
+              <tr>
+                <th>No. Rekening</th><th>Nasabah</th><th>CIF</th><th>Cabang</th>
+                <th style="text-align:right">Hari</th>
+                <th style="text-align:right">Saldo Rata-rata</th>
+                <th style="text-align:right">Poin Rekening</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div class="empty" id="rek-empty" style="display:none">
+            <h4>Belum ada rekening</h4>
+            <p>Klik <b>“+ Tambah Rekening”</b> atau muat contoh data untuk mulai.</p>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:18px">
+          <div class="card-head">
+            <div>
+              <h3>Format Import Excel/CSV</h3>
+              <div class="sub">Nomor rekening 11 digit. Gunakan <b>cif</b> untuk menggabungkan rekening milik nasabah yang sama.</div>
+            </div>
+            <button class="btn btn-sm" id="btnTemplate">Unduh Template</button>
+          </div>
+          <div class="mut-grid">
+            <div>
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-3)">Format Sederhana</div>
+              <pre style="background:#FCFAF3;border:1px solid var(--line);border-radius:8px;padding:12px;font-size:12px;margin-top:8px;overflow:auto"><code>cif,accNo,name,branch,balance,days
+C0001,10000022451,Siti Nurhaliza,KC Pusat,5000000,300
+C0001,10000022468,Siti Nurhaliza,KC Pusat,3000000,300
+C0002,10000022475,Budi Santoso,KC Salatiga,12000000,365</code></pre>
+              <p style="font-size:12px;color:var(--ink-3);margin-top:8px">Saldo rata-rata × hari ÷ 100.000.</p>
+            </div>
+            <div>
+              <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--ink-3)">Format Mutasi Harian (lebih akurat)</div>
+              <pre style="background:#FCFAF3;border:1px solid var(--line);border-radius:8px;padding:12px;font-size:12px;margin-top:8px;overflow:auto"><code>cif,accNo,name,branch,date,balance
+C0001,10000022451,Siti Nurhaliza,KC Pusat,2026-01-01,5000000
+C0001,10000022451,Siti Nurhaliza,KC Pusat,2026-01-02,5500000
+C0001,10000022468,Siti Nurhaliza,KC Pusat,2026-01-01,3000000</code></pre>
+              <p style="font-size:12px;color:var(--ink-3);margin-top:8px">Tiap baris = 1 hari saldo. Poin = Σ (saldo ÷ 100.000).</p>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <!-- GRADE -->
+  <section class="view" id="view-grade">
+    <div class="admin-wrap">
+      <aside class="side" data-side></aside>
+      <main class="admin-main">
+        <div class="page-head">
+          <div>
+            <h1 class="page-title">Grade Hadiah</h1>
+            <p class="page-sub">Definisikan grade dan poin minimal. <b>Nasabah dengan poin tinggi otomatis eligible juga di grade dengan poin minimal lebih rendah.</b></p>
+          </div>
+          <button class="btn btn-primary" id="btnAddGrade">+ Tambah Grade</button>
+        </div>
+        <div class="card">
+          <table class="tbl" id="grade-tbl">
+            <thead><tr><th>#</th><th>Nama Grade</th><th>Deskripsi</th><th style="text-align:right">Min. Poin</th><th style="text-align:right">Min. Saldo Terakhir</th><th style="text-align:right">Jumlah Hadiah</th><th style="text-align:right">Nasabah Eligible</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="empty" id="grade-empty" style="display:none"><h4>Belum ada grade</h4><p>Mulai dengan menambahkan grade hadiah pertama.</p></div>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <!-- HADIAH -->
+  <section class="view" id="view-hadiah">
+    <div class="admin-wrap">
+      <aside class="side" data-side></aside>
+      <main class="admin-main">
+        <div class="page-head">
+          <div>
+            <h1 class="page-title">Daftar Hadiah</h1>
+            <p class="page-sub">Urutan hadiah menentukan urutan pengundian. Gunakan tombol ↑↓ untuk mengatur urutan.</p>
+          </div>
+          <button class="btn btn-primary" id="btnAddHadiah">+ Tambah Hadiah</button>
+        </div>
+        <div class="card">
+          <table class="tbl" id="hadiah-tbl">
+            <thead><tr><th style="width:90px">Urutan</th><th>Foto</th><th>Grade</th><th>Nama Hadiah</th><th>Catatan</th><th style="text-align:right">Estimasi Nilai</th><th style="text-align:right">Kuantitas</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="empty" id="hadiah-empty" style="display:none"><h4>Belum ada hadiah</h4><p>Tambahkan hadiah dan kaitkan dengan grade yang sudah dibuat.</p></div>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <!-- RIWAYAT -->
+  <section class="view" id="view-riwayat">
+    <div class="admin-wrap">
+      <aside class="side" data-side></aside>
+      <main class="admin-main">
+        <div class="page-head">
+          <div>
+            <h1 class="page-title">Riwayat Undian</h1>
+            <p class="page-sub">Pemenang yang sudah dikonfirmasi. Nomor rekening disensor untuk privasi.</p>
+          </div>
+          <div style="display:flex;gap:10px">
+            <button class="btn" id="btnExportWinnersXLSX">⬇ Export Excel</button>
+            <button class="btn" id="btnExportWinners">Export CSV</button>
+            <button class="btn btn-ghost" id="btnClearWinners">Bersihkan Riwayat</button>
+          </div>
+        </div>
+        <div class="card">
+          <table class="tbl" id="hist-tbl">
+            <thead><tr><th>Waktu</th><th>Grade</th><th>Hadiah</th><th>Pemenang</th><th>CIF</th><th>No. Rekening</th><th style="text-align:right">Poin</th></tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="empty" id="hist-empty" style="display:none"><h4>Belum ada pemenang</h4><p>Hasil undian akan tercatat otomatis di sini.</p></div>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <!-- =================== DRAWING SCREEN =================== -->
+  <section class="view" id="view-draw">
+    <div class="draw-view">
+      <div class="draw-shell">
+        <div class="draw-head">
+          <div class="draw-title">
+            <span class="kicker">Pengundian Hadiah Tahunan</span>
+            <h1>Tabungan <em>Perdana Plus</em></h1>
+          </div>
+          <div class="draw-head-right">
+            <div class="progress-chip"><span class="pl">Progress</span><span class="pv" id="drawProgress">0 / 0</span></div>
+            <button class="audio-toggle" id="btnAudio" title="Audio On/Off">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M19 5a9 9 0 0 1 0 14M15.5 8.5a5 5 0 0 1 0 7"/></svg>
+            </button>
+            <button class="audio-toggle" id="btnFs" title="Fullscreen">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9V3h6M21 9V3h-6M3 15v6h6M21 15v6h-6"/></svg>
+            </button>
+            <div class="period-chip">
+              <span class="l">Periode</span>
+              <span class="v" id="drawPeriod">Tahun 2026</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="draw-stage-wrap" style="flex:1;display:flex;flex-direction:column;gap:14px">
+          <div class="big-stage" id="draw-stage" style="display:none">
+            <div class="big-row">
+              <div>
+                <div class="prize-photo-wrap" id="prizePhotoWrap">
+                  <div class="prize-photo-placeholder" id="prizePhotoPlaceholder">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 12v10H4V12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
+                    <div>Foto hadiah belum tersedia</div>
+                    <small>Tambahkan foto di tab Hadiah</small>
+                  </div>
+                </div>
+              </div>
+              <div class="prize-info">
+                <div class="pi-kicker" id="centerKicker">Hadiah berikutnya</div>
+                <h2 class="pi-name" id="prizeName">—</h2>
+                <div class="pi-meta" id="prizeMeta"></div>
+              </div>
+            </div>
+
+            <div class="reel-section">
+              <div class="reel-label">Nomor Rekening Pemenang</div>
+              <div class="reel" id="reel"></div>
+              <div class="name-plate" id="namePlate">
+                <div class="nm" id="winnerName">—</div>
+                <div class="meta" id="winnerMeta">tekan tombol untuk memulai</div>
+              </div>
+            </div>
+
+            <div class="draw-controls">
+              <button class="btn-spin" id="btnSpin">Mulai Putar</button>
+              <button class="btn-stop" id="btnStop" disabled>Stop</button>
+              <button class="btn-confirm" id="btnConfirm" disabled>Konfirmasi</button>
+              <button class="btn-skip" id="btnSkip">Lewati</button>
+            </div>
+          </div>
+
+          <div class="banner" id="draw-empty" style="display:none">
+            <h3>Belum siap diundi</h3>
+            <p>Pastikan ada minimal <b>1 grade</b>, <b>1 hadiah</b>, dan <b>data rekening</b> sebelum memulai pengundian.</p>
+            <div style="margin-top:14px;display:flex;gap:8px;justify-content:center">
+              <button class="btn" data-view="rekening">Setup Rekening</button>
+              <button class="btn" data-view="grade">Setup Grade</button>
+              <button class="btn btn-primary" data-view="hadiah">Setup Hadiah</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="winners-tab" id="winnersTab">
+        <span class="wt-ct" id="winCount">0</span>
+        <span class="wt-lbl">Pemenang</span>
+      </div>
+      <div class="winners-drawer" id="winnersDrawer">
+        <div class="winners-drawer-head">
+          <div>
+            <h3>Pemenang Sesi Ini</h3>
+            <div class="ct" id="winCountSub">0 pemenang</div>
+          </div>
+          <button class="icon-btn" id="winnersClose">✕</button>
+        </div>
+        <div class="winners-list" id="winners-list"></div>
+      </div>
+
+      <div class="reveal" id="reveal">
+        <div class="reveal-card">
+          <div class="reveal-kicker">★ Pemenang ★</div>
+          <div class="reveal-name" id="revealName">—</div>
+          <div class="reveal-meta" id="revealMeta">—</div>
+          <div class="reveal-prize" id="revealPrize">—</div>
+          <div class="reveal-actions">
+            <button class="btn btn-lg btn-primary" id="revealOk">Lanjutkan</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-head"><h3 id="modal-title">Form</h3><button class="icon-btn" id="modal-close">✕</button></div>
+    <div class="modal-body" id="modal-body"></div>
+    <div class="modal-foot">
+      <button class="btn" id="modal-cancel">Batal</button>
+      <button class="btn btn-primary" id="modal-save">Simpan</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<template id="__bundler_thumbnail" data-bg-color="#F5C518">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#F5C518"/>
+    <rect x="420" y="250" width="360" height="300" rx="40" fill="#FFFFFF" stroke="#E5B400" stroke-width="6"/>
+    <text x="600" y="475" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="220" font-weight="800" fill="#D8233E" text-anchor="middle">p</text>
+    <text x="600" y="640" font-family="Plus Jakarta Sans, Inter, sans-serif" font-size="48" font-weight="800" fill="#2C2A29" text-anchor="middle" letter-spacing="2">PENGUNDIAN</text>
+    <text x="600" y="695" font-family="Inter, sans-serif" font-size="30" font-weight="600" fill="#4B4845" text-anchor="middle" letter-spacing="6">PERDANA PLUS</text>
+  </svg>
+</template>
+
+<script>
+/* ============================================================
+   STATE
+   ============================================================ */
+const LS_KEY = 'perdana-undian-v4';
+const SESSION_KEY = 'perdana-undian-session';
+const ACC_LEN = 11;
+const DEFAULT_STATE = {
+  period: 'Tahun 2026',
+  password: 'perdana2026',
+  audio: true,
+  rekening: [],
+  grades: [],
+  hadiah: [],
+  history: [],
+};
+let state = load();
+function load(){
+  try{
+    const s = JSON.parse(localStorage.getItem(LS_KEY) || 'null');
+    if(!s){
+      // migrate from v3 if exists
+      const old = JSON.parse(localStorage.getItem('perdana-undian-v3') || 'null');
+      if(old){
+        const out = Object.assign(structuredClone(DEFAULT_STATE), old);
+        // assign order based on grade priority then existing index
+        const sortedGrades = [...(old.grades||[])].sort((a,b)=>a.minPoints-b.minPoints);
+        let ord = 1;
+        sortedGrades.forEach(g=>{
+          (old.hadiah||[]).filter(h=>h.gradeId===g.id).forEach(h=>{ h.order = ord++; });
+        });
+        (old.hadiah||[]).forEach(h=>{ if(!h.order) h.order = ord++; });
+        out.hadiah = old.hadiah || [];
+        return out;
+      }
+      return structuredClone(DEFAULT_STATE);
+    }
+    return Object.assign(structuredClone(DEFAULT_STATE), s);
+  }catch(e){ return structuredClone(DEFAULT_STATE); }
+}
+function save(){
+  try{ localStorage.setItem(LS_KEY, JSON.stringify(state)); }
+  catch(e){ toast('Penyimpanan penuh — kurangi ukuran foto hadiah','err'); }
+}
+
+/* ============================================================
+   AUTH
+   ============================================================ */
+function isLoggedIn(){ return sessionStorage.getItem(SESSION_KEY) === '1'; }
+function showLogin(){ $('#login').style.display='flex'; $('#app').style.display='none'; setTimeout(()=>$('#lg-pw').focus(),100); }
+function showApp(){ $('#login').style.display='none'; $('#app').style.display='flex'; renderSideAll(); }
+function tryLogin(){
+  const v = $('#lg-pw').value;
+  if(v === state.password){
+    sessionStorage.setItem(SESSION_KEY,'1');
+    $('#lg-err').style.display='none'; $('#lg-pw').value='';
+    showApp(); renderDashboard();
+  }else{
+    $('#lg-err').style.display='block'; $('#lg-pw').select();
+  }
+}
+
+/* ============================================================
+   UTILS
+   ============================================================ */
+const fmt = n => new Intl.NumberFormat('id-ID').format(Math.round(n));
+const fmtRp = n => 'Rp ' + fmt(n);
+const uid = () => Math.random().toString(36).slice(2,10);
+const $ = (s,r=document) => r.querySelector(s);
+const $$ = (s,r=document) => [...r.querySelectorAll(s)];
+
+function pointsOfRek(rek){
+  if(rek.mutations && rek.mutations.length){
+    return rek.mutations.reduce((s,m)=>s + Math.floor((Number(m.balance)||0)/100000), 0);
+  }
+  return Math.floor((Number(rek.balance)||0) * (Number(rek.days)||0) / 100000);
+}
+function avgBalanceRek(rek){
+  if(rek.mutations && rek.mutations.length){
+    const sum = rek.mutations.reduce((s,m)=>s+(Number(m.balance)||0),0);
+    return sum / rek.mutations.length;
+  }
+  return Number(rek.balance)||0;
+}
+function daysOfRek(rek){
+  if(rek.mutations && rek.mutations.length) return rek.mutations.length;
+  return Number(rek.days)||0;
+}
+function lastBalanceRek(rek){
+  // saldo terakhir: untuk data mutasi = saldo pada tanggal terakhir; untuk data sederhana = saldo rata-rata
+  if(rek.mutations && rek.mutations.length){
+    const sorted = rek.mutations.slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+    return Number(sorted[sorted.length-1].balance)||0;
+  }
+  return Number(rek.balance)||0;
+}
+function customerKey(rek){
+  return (rek.cif && String(rek.cif).trim()) ? String(rek.cif).trim() : ('NM::' + (rek.name||'').trim().toLowerCase());
+}
+function getCustomers(){
+  const map = new Map();
+  for(const r of state.rekening){
+    const k = customerKey(r);
+    if(!map.has(k)){
+      map.set(k, {key:k, cif:r.cif||'', name:r.name||'', branch:r.branch||'', accounts:[], totalPoints:0, totalBalance:0, totalLastBalance:0});
+    }
+    const c = map.get(k);
+    c.accounts.push(r);
+    c.totalPoints += pointsOfRek(r);
+    c.totalBalance += avgBalanceRek(r);
+    c.totalLastBalance += lastBalanceRek(r);
+    if(!c.name && r.name) c.name = r.name;
+    if(!c.branch && r.branch) c.branch = r.branch;
+  }
+  for(const c of map.values()){
+    c.displayAccount = c.accounts.slice().sort((a,b)=>avgBalanceRek(b)-avgBalanceRek(a))[0];
+    c.displayAccNo = c.displayAccount?.accNo || '';
+  }
+  return [...map.values()];
+}
+function eligibleCustomersFor(grade){
+  const minBal = Number(grade.minBalance)||0;
+  return getCustomers().filter(c=>c.totalPoints >= grade.minPoints && c.totalLastBalance >= minBal);
+}
+
+function maskAcc(acc){
+  if(!acc) return '';
+  const s = String(acc);
+  if(s.length<=5) return s;
+  return s[0] + '*'.repeat(s.length-5) + s.slice(-4);
+}
+
+function toast(msg, kind=''){
+  const el = document.createElement('div');
+  el.className = 'toast ' + kind;
+  el.textContent = msg;
+  $('#toasts').appendChild(el);
+  setTimeout(()=>{el.style.opacity='0';el.style.transform='translateY(8px)';el.style.transition='.2s'},2200);
+  setTimeout(()=>el.remove(), 2500);
+}
+
+/* ============================================================
+   SIDEBAR (rendered on all admin views)
+   ============================================================ */
+const SIDEBAR_HTML = `
+  <div class="side-section">Setup</div>
+  <a data-view="dashboard"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="9"/><rect x="14" y="3" width="7" height="5"/><rect x="14" y="12" width="7" height="9"/><rect x="3" y="16" width="7" height="5"/></svg> Dashboard</a>
+  <a data-view="rekening"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg> Data Rekening</a>
+  <a data-view="grade"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3 7 7 .8-5.4 4.7 1.7 7-6.3-3.7L5.7 21.5l1.7-7L2 9.8 9 9z"/></svg> Grade Hadiah</a>
+  <a data-view="hadiah"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M3 12h18M12 8v13M7 8a3 3 0 1 1 5-3 3 3 0 1 1 5 3"/></svg> Daftar Hadiah</a>
+  <div class="side-section" style="margin-top:14px">Event</div>
+  <a data-view="riwayat"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v6h6M3 9a9 9 0 1 0 2-5"/><path d="M12 7v5l3 2"/></svg> Riwayat Undian</a>
+  <a data-view="draw"><svg class="ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="6 3 20 12 6 21 6 3"/></svg> Mulai Pengundian</a>
+  <div class="side-tip">
+    <div class="stk">Aturan Poin</div>
+    <div class="stv">Setiap Rp <b>100.000</b> saldo dalam 1 hari = <b>1 poin</b>.<br>1 nasabah dengan beberapa rekening, poinnya <b>dijumlahkan</b>.</div>
+  </div>
+`;
+function renderSideAll(){
+  $$('aside.side[data-side]').forEach(el=>{
+    if(!el.dataset.rendered){ el.innerHTML = SIDEBAR_HTML; el.dataset.rendered='1'; }
+  });
+  highlightSide(currentView);
+}
+let currentView = 'dashboard';
+function highlightSide(view){
+  $$('aside.side a[data-view]').forEach(a=>a.classList.toggle('active', a.dataset.view===view));
+}
+
+/* ============================================================
+   AUDIO
+   ============================================================ */
+let audioCtx;
+function ac(){
+  if(!state.audio) return null;
+  if(!audioCtx){ try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ return null; } }
+  if(audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+// === DRUMROLL: rapid noise hits with low-pass filter ===
+function drumrollStart(){
+  const c = ac(); if(!c) return ()=>{};
+  let stopped = false;
+  let count = 0;
+
+  function hit(){
+    if(stopped) return;
+    const dur = 0.06;
+    const bufferSize = Math.floor(c.sampleRate * dur);
+    const buffer = c.createBuffer(1, bufferSize, c.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i=0;i<bufferSize;i++){
+      // exponential decay envelope
+      const env = Math.exp(-i / bufferSize * 7);
+      data[i] = (Math.random()*2 - 1) * env;
+    }
+    const src = c.createBufferSource(); src.buffer = buffer;
+    const lp = c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value = 280; lp.Q.value = 1.1;
+    const hp = c.createBiquadFilter(); hp.type='highpass'; hp.frequency.value = 60;
+    const g = c.createGain();
+    // intensity ramps up slightly
+    const intensity = 0.32 + Math.min(0.18, count*0.002);
+    g.gain.value = intensity * (0.85 + Math.random()*0.3);
+    src.connect(hp); hp.connect(lp); lp.connect(g); g.connect(c.destination);
+    src.start();
+    count++;
+    // very short interval = drumroll
+    setTimeout(hit, 28 + Math.random()*10);
+  }
+  // initial accent hit
+  (function accent(){
+    const dur = 0.18;
+    const bs = Math.floor(c.sampleRate*dur);
+    const buf = c.createBuffer(1,bs,c.sampleRate);
+    const d = buf.getChannelData(0);
+    for(let i=0;i<bs;i++){ const e=Math.exp(-i/bs*4); d[i]=(Math.random()*2-1)*e; }
+    const src = c.createBufferSource(); src.buffer=buf;
+    const lp = c.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=180;
+    const g = c.createGain(); g.gain.value=0.5;
+    src.connect(lp); lp.connect(g); g.connect(c.destination);
+    src.start();
+  })();
+  hit();
+  return ()=>{ stopped=true; };
+}
+
+function lockSound(){
+  const c = ac(); if(!c) return;
+  // cymbal-like crash + boom
+  const dur = 0.5;
+  const bs = Math.floor(c.sampleRate*dur);
+  const buf = c.createBuffer(1,bs,c.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0;i<bs;i++){ const e=Math.exp(-i/bs*5); d[i]=(Math.random()*2-1)*e*0.9; }
+  const src = c.createBufferSource(); src.buffer=buf;
+  const hp = c.createBiquadFilter(); hp.type='highpass'; hp.frequency.value=2000;
+  const g = c.createGain(); g.gain.value=0.35;
+  src.connect(hp); hp.connect(g); g.connect(c.destination);
+  src.start();
+  // low boom
+  const o = c.createOscillator(); const og = c.createGain();
+  o.frequency.setValueAtTime(140, c.currentTime);
+  o.frequency.exponentialRampToValueAtTime(50, c.currentTime+0.35);
+  o.type='sine';
+  og.gain.setValueAtTime(0.001, c.currentTime);
+  og.gain.linearRampToValueAtTime(0.4, c.currentTime+0.02);
+  og.gain.exponentialRampToValueAtTime(0.001, c.currentTime+0.45);
+  o.connect(og); og.connect(c.destination);
+  o.start(); o.stop(c.currentTime+0.5);
+}
+function fanfare(){
+  const c = ac(); if(!c) return;
+  const notes = [523.25, 659.25, 783.99, 1046.5];
+  notes.forEach((f,i)=>{
+    const o = c.createOscillator(); const g = c.createGain();
+    o.frequency.value = f; o.type = 'triangle';
+    const t0 = c.currentTime + i*0.12;
+    g.gain.setValueAtTime(0.001, t0);
+    g.gain.linearRampToValueAtTime(0.18, t0+0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, t0+0.4);
+    o.connect(g); g.connect(c.destination);
+    o.start(t0); o.stop(t0+0.42);
+  });
+}
+
+/* ============================================================
+   ROUTING
+   ============================================================ */
+function go(view){
+  currentView = view;
+  $$('.view').forEach(v=>v.classList.remove('active'));
+  $('#view-' + view).classList.add('active');
+  $$('.nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===view));
+  highlightSide(view);
+  if(view==='dashboard') renderDashboard();
+  if(view==='rekening') renderRekening();
+  if(view==='grade') renderGrades();
+  if(view==='hadiah') renderHadiah();
+  if(view==='riwayat') renderHistory();
+  if(view==='draw') openDraw();
+}
+document.addEventListener('click', (e)=>{
+  const t = e.target.closest('[data-view]');
+  if(t){ e.preventDefault(); go(t.dataset.view); }
+});
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+function renderDashboard(){
+  const customers = getCustomers();
+  $('#kpi-nasabah').textContent = fmt(customers.length);
+  $('#kpi-rek-sub').textContent = `${fmt(state.rekening.length)} rekening`;
+  $('#kpi-poin').textContent = fmt(customers.reduce((s,c)=>s+c.totalPoints,0));
+  $('#kpi-grade').textContent = fmt(state.grades.length);
+  $('#kpi-grade-sub').textContent = state.hadiah.length + ' hadiah terdaftar';
+
+  const ready = state.rekening.length && state.grades.length && state.hadiah.length;
+  $('#kpi-status').textContent = ready ? 'Siap' : 'Setup';
+  $('#kpi-status-sub').textContent = ready ? 'Klik “Mulai Pengundian”' : 'Lengkapi data terlebih dahulu';
+
+  const distBody = $('#dist-tbl tbody');
+  const sortedGrades = [...state.grades].sort((a,b)=>b.minPoints-a.minPoints);
+  if(!sortedGrades.length){
+    distBody.innerHTML = `<tr><td colspan="5" class="muted" style="text-align:center;padding:30px">Belum ada grade.</td></tr>`;
+  }else{
+    distBody.innerHTML = sortedGrades.map(g=>{
+      const elig = eligibleCustomersFor(g);
+      const prizeCount = state.hadiah.filter(h=>h.gradeId===g.id).reduce((s,h)=>s+(h.qty||1),0);
+      return `<tr>
+        <td><span class="tag gold">${escapeHtml(g.name)}</span></td>
+        <td class="num">${fmt(g.minPoints)}</td>
+        <td class="num">${g.minBalance?fmtRp(g.minBalance):'<span class="muted">—</span>'}</td>
+        <td class="num">${fmt(prizeCount)}</td>
+        <td class="num">${fmt(elig.length)}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  const topBody = $('#top-tbl tbody');
+  const top = customers.slice().sort((a,b)=>b.totalPoints-a.totalPoints).slice(0,10);
+  if(!top.length){
+    topBody.innerHTML = `<tr><td colspan="5" class="muted" style="text-align:center;padding:30px">Belum ada rekening.</td></tr>`;
+  }else{
+    topBody.innerHTML = top.map((c,i)=>`
+      <tr>
+        <td class="num">${i+1}</td>
+        <td><div class="nasabah">${escapeHtml(c.name)}</div><div class="muted" style="font-size:11.5px">${escapeHtml(c.cif||'')} · ${escapeHtml(c.branch||'')}</div></td>
+        <td class="acc-no">${escapeHtml(c.displayAccNo)}</td>
+        <td class="num" style="text-align:right">${fmt(c.accounts.length)}</td>
+        <td class="num" style="text-align:right;font-weight:700;color:var(--red)">${fmt(c.totalPoints)}</td>
+      </tr>
+    `).join('');
+  }
+
+  $('#periodLabel').textContent = state.period.replace('Tahun ','');
+  $('#drawPeriod').textContent = state.period;
+}
+
+/* ============================================================
+   REKENING
+   ============================================================ */
+function renderRekening(){
+  const q = ($('#rek-search')?.value || '').toLowerCase();
+  const gFilter = $('#rek-grade-filter')?.value || '';
+
+  const sel = $('#rek-grade-filter');
+  sel.innerHTML = '<option value="">Semua Grade</option>' +
+    state.grades.map(g=>`<option value="${g.id}">${escapeHtml(g.name)} (≥ ${fmt(g.minPoints)})</option>`).join('');
+  sel.value = gFilter;
+
+  const customers = getCustomers();
+  let rows = state.rekening.map(r=>{
+    const c = customers.find(c=>customerKey(r)===c.key);
+    return {...r, p:pointsOfRek(r), avg:avgBalanceRek(r), d:daysOfRek(r), customerPts:c?.totalPoints||0, customerBal:c?.totalLastBalance||0};
+  });
+  if(q) rows = rows.filter(r=>
+    (r.name||'').toLowerCase().includes(q) ||
+    (r.accNo||'').toLowerCase().includes(q) ||
+    (r.cif||'').toLowerCase().includes(q)
+  );
+  if(gFilter){
+    const grade = state.grades.find(g=>g.id===gFilter);
+    if(grade) rows = rows.filter(r=>r.customerPts>=grade.minPoints && r.customerBal>=(Number(grade.minBalance)||0));
+  }
+  rows.sort((a,b)=>b.customerPts-a.customerPts);
+
+  const tbody = $('#rek-tbl tbody');
+  $('#rek-count').textContent = rows.length + ' rekening';
+  $('#rek-empty').style.display = rows.length ? 'none' : 'block';
+  $('#rek-tbl').style.display = rows.length ? 'table' : 'none';
+
+  tbody.innerHTML = rows.map(r=>{
+    const mutBadge = (r.mutations && r.mutations.length) ? `<span class="muted" style="font-size:10.5px;margin-left:6px">mutasi</span>` : '';
+    return `<tr>
+      <td class="acc-no">${escapeHtml(r.accNo)}</td>
+      <td><div class="nasabah">${escapeHtml(r.name)}</div></td>
+      <td class="acc-no" style="font-size:12px">${escapeHtml(r.cif||'-')}</td>
+      <td class="muted">${escapeHtml(r.branch||'-')}</td>
+      <td class="num" style="text-align:right">${fmt(r.d)}${mutBadge}</td>
+      <td class="num" style="text-align:right">${fmtRp(r.avg)}</td>
+      <td class="num" style="text-align:right;font-weight:700">${fmt(r.p)}</td>
+      <td>
+        <div class="row-actions">
+          <button class="icon-btn" data-edit-rek="${r.id}" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+          <button class="icon-btn danger" data-del-rek="${r.id}" title="Hapus"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+document.addEventListener('click', (e)=>{
+  const ed = e.target.closest('[data-edit-rek]');
+  if(ed) openRekModal(ed.dataset.editRek);
+  const dl = e.target.closest('[data-del-rek]');
+  if(dl){
+    if(confirm('Hapus rekening ini?')){
+      state.rekening = state.rekening.filter(r=>r.id!==dl.dataset.delRek);
+      save(); renderRekening(); toast('Rekening dihapus');
+    }
+  }
+});
+
+function openRekModal(id){
+  const r = id ? state.rekening.find(x=>x.id===id) : {id:uid(),cif:'',accNo:'',name:'',branch:'',balance:0,days:365};
+  modal({
+    title: id?'Edit Rekening':'Tambah Rekening',
+    body: `
+      <div class="form-grid">
+        <div class="field"><label>CIF Nasabah <span class="hint">(untuk grouping)</span></label><input id="f-cif" value="${escapeAttr(r.cif||'')}" placeholder="mis. C0001" /></div>
+        <div class="field"><label>No. Rekening <span class="hint">(11 digit)</span></label><input id="f-acc" value="${escapeAttr(r.accNo||'')}" placeholder="10000022451" maxlength="11" /></div>
+        <div class="field" style="grid-column:1/-1"><label>Nama Nasabah</label><input id="f-name" value="${escapeAttr(r.name||'')}" /></div>
+        <div class="field"><label>Cabang</label><input id="f-branch" value="${escapeAttr(r.branch||'')}" placeholder="mis. KC Salatiga" /></div>
+        <div class="field"><label>Hari Aktif</label><input id="f-days" type="number" value="${r.days||0}" /></div>
+        <div class="field" style="grid-column:1/-1"><label>Saldo Rata-rata <span class="hint">(Rp / hari)</span></label><input id="f-bal" type="number" value="${r.balance||0}" /></div>
+      </div>
+      ${r.mutations && r.mutations.length ? `<div style="margin-top:14px;padding:10px 12px;background:#E5F2EA;border-radius:9px;font-size:12px;color:#1F6A47">
+        Rekening ini punya <b>${r.mutations.length} baris mutasi harian</b>. Poin dihitung dari mutasi.
+      </div>`:''}
+      <div style="margin-top:14px;padding:12px 14px;background:var(--yellow-tint);border-radius:9px;font-size:12.5px;color:var(--ink-2)">
+        Estimasi poin: <b>saldo × hari ÷ 100.000</b>. Untuk akurasi, import mutasi harian.
+      </div>
+    `,
+    onSave(){
+      r.cif = $('#f-cif').value.trim();
+      r.accNo = $('#f-acc').value.trim();
+      r.name = $('#f-name').value.trim();
+      r.branch = $('#f-branch').value.trim();
+      r.balance = Number($('#f-bal').value)||0;
+      r.days = Number($('#f-days').value)||0;
+      if(!r.accNo || !r.name) return toast('Nomor & nama wajib diisi','err');
+      if(!id) state.rekening.push(r);
+      save(); renderRekening(); toast(id?'Rekening diperbarui':'Rekening ditambahkan','ok');
+      return true;
+    }
+  });
+}
+
+$('#btnAddRek').onclick = ()=> openRekModal();
+$('#btnImportSample').onclick = ()=>{
+  if(state.rekening.length && !confirm('Akan menambahkan data contoh ke rekening yang sudah ada. Lanjutkan?')) return;
+  state.rekening.push(...sampleRekening());
+  if(!state.grades.length) state.grades.push(...sampleGrades());
+  if(!state.hadiah.length) state.hadiah.push(...sampleHadiah(state.grades));
+  save(); renderRekening(); toast('Data contoh berhasil dimuat', 'ok');
+};
+$('#btnImportXLSX').onclick = ()=> $('#fileImport').click();
+$('#btnTemplate').onclick = ()=>{
+  const wb = XLSX.utils.book_new();
+  const ws1 = XLSX.utils.aoa_to_sheet([
+    ['cif','accNo','name','branch','balance','days'],
+    ['C0001','10000022451','Siti Nurhaliza','KC Pusat',5000000,300],
+    ['C0001','10000022468','Siti Nurhaliza','KC Pusat',3000000,300],
+    ['C0002','10000022475','Budi Santoso','KC Salatiga',12000000,365]
+  ]);
+  const ws2 = XLSX.utils.aoa_to_sheet([
+    ['cif','accNo','name','branch','date','balance'],
+    ['C0001','10000022451','Siti Nurhaliza','KC Pusat','2026-01-01',5000000],
+    ['C0001','10000022451','Siti Nurhaliza','KC Pusat','2026-01-02',5500000],
+    ['C0001','10000022468','Siti Nurhaliza','KC Pusat','2026-01-01',3000000],
+    ['C0002','10000022475','Budi Santoso','KC Salatiga','2026-01-01',12000000],
+  ]);
+  XLSX.utils.book_append_sheet(wb,ws1,'Sederhana');
+  XLSX.utils.book_append_sheet(wb,ws2,'Mutasi Harian');
+  XLSX.writeFile(wb,'template-perdana-plus.xlsx');
+};
+
+$('#fileImport').onchange = async (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  try{
+    const data = await f.arrayBuffer();
+    const wb = XLSX.read(data, {type:'array', cellDates:true});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, {raw:false, defval:''});
+    if(!rows.length){ toast('File kosong','err'); return; }
+    const sample = rows[0];
+    const keys = Object.keys(sample).map(k=>k.toLowerCase());
+    const isMutasi = keys.includes('date') || keys.includes('tanggal');
+    const norm = obj => { const o = {}; for(const k in obj) o[k.toLowerCase().trim()] = obj[k]; return o; };
+
+    if(isMutasi){
+      const groups = {};
+      rows.forEach(r=>{
+        const o = norm(r);
+        const acc = String(o.accno||o['no rekening']||o['no. rekening']||'').trim();
+        if(!acc) return;
+        if(!groups[acc]){
+          groups[acc] = {id:uid(),accNo:acc,cif:String(o.cif||'').trim(),name:String(o.name||o.nama||'').trim(),branch:String(o.branch||o.cabang||'').trim(),mutations:[]};
+        }
+        const dt = o.date||o.tanggal;
+        const bal = Number(String(o.balance||o.saldo||0).replace(/[^\d.-]/g,''))||0;
+        groups[acc].mutations.push({date: typeof dt==='object'?dt.toISOString().slice(0,10):String(dt), balance: bal});
+      });
+      const merged = Object.values(groups);
+      merged.forEach(nrek=>{
+        const existing = state.rekening.find(x=>x.accNo===nrek.accNo);
+        if(existing){
+          existing.mutations = (existing.mutations||[]).concat(nrek.mutations);
+          if(!existing.name) existing.name = nrek.name;
+          if(!existing.branch) existing.branch = nrek.branch;
+          if(!existing.cif) existing.cif = nrek.cif;
+        }else state.rekening.push(nrek);
+      });
+      save(); renderRekening(); toast(`${rows.length} baris mutasi diimport (${merged.length} rekening)`,'ok');
+    }else{
+      let added = 0;
+      rows.forEach(r=>{
+        const o = norm(r);
+        const acc = String(o.accno||o['no rekening']||o['no. rekening']||'').trim();
+        if(!acc) return;
+        state.rekening.push({
+          id:uid(), accNo:acc, cif:String(o.cif||'').trim(),
+          name:String(o.name||o.nama||'').trim(),
+          branch:String(o.branch||o.cabang||'').trim(),
+          balance: Number(String(o.balance||o.saldo||0).replace(/[^\d.-]/g,''))||0,
+          days: Number(String(o.days||o.hari||0).replace(/[^\d.-]/g,''))||0,
+        });
+        added++;
+      });
+      save(); renderRekening(); toast(`${added} rekening diimport`,'ok');
+    }
+  }catch(err){
+    console.error(err); toast('Gagal membaca file: '+err.message,'err');
+  }
+  e.target.value = '';
+};
+$('#rek-search')?.addEventListener('input', renderRekening);
+$('#rek-grade-filter')?.addEventListener('change', renderRekening);
+
+/* ============================================================
+   GRADES
+   ============================================================ */
+function renderGrades(){
+  const sorted = [...state.grades].sort((a,b)=>b.minPoints-a.minPoints);
+  const tbody = $('#grade-tbl tbody');
+  $('#grade-empty').style.display = sorted.length?'none':'block';
+  $('#grade-tbl').style.display = sorted.length?'table':'none';
+  tbody.innerHTML = sorted.map((g,i)=>{
+    const elig = eligibleCustomersFor(g);
+    const prizeCount = state.hadiah.filter(h=>h.gradeId===g.id).reduce((s,h)=>s+(h.qty||1),0);
+    return `<tr>
+      <td class="num">${i+1}</td>
+      <td><span class="tag gold">${escapeHtml(g.name)}</span></td>
+      <td class="muted">${escapeHtml(g.desc||'-')}</td>
+      <td class="num" style="text-align:right">${fmt(g.minPoints)}</td>
+      <td class="num" style="text-align:right">${g.minBalance?fmtRp(g.minBalance):'<span class="muted">—</span>'}</td>
+      <td class="num" style="text-align:right">${fmt(prizeCount)}</td>
+      <td class="num" style="text-align:right">${fmt(elig.length)}</td>
+      <td>
+        <div class="row-actions">
+          <button class="icon-btn" data-edit-grade="${g.id}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+          <button class="icon-btn danger" data-del-grade="${g.id}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+$('#btnAddGrade').onclick = ()=> openGradeModal();
+document.addEventListener('click',(e)=>{
+  const ed = e.target.closest('[data-edit-grade]');
+  if(ed) openGradeModal(ed.dataset.editGrade);
+  const dl = e.target.closest('[data-del-grade]');
+  if(dl){
+    const hasPrize = state.hadiah.some(h=>h.gradeId===dl.dataset.delGrade);
+    if(hasPrize && !confirm('Grade ini punya hadiah terdaftar. Hadiah juga akan dihapus. Lanjutkan?')) return;
+    state.grades = state.grades.filter(g=>g.id!==dl.dataset.delGrade);
+    state.hadiah = state.hadiah.filter(h=>h.gradeId!==dl.dataset.delGrade);
+    save(); renderGrades(); toast('Grade dihapus');
+  }
+});
+function openGradeModal(id){
+  const g = id ? state.grades.find(x=>x.id===id) : {id:uid(),name:'',desc:'',minPoints:1000,minBalance:0};
+  modal({
+    title: id?'Edit Grade':'Tambah Grade',
+    body: `
+      <div class="form-grid">
+        <div class="field" style="grid-column:1/-1"><label>Nama Grade</label><input id="g-name" value="${escapeAttr(g.name)}" placeholder="mis. Grade A, Grade B, Grade C" /></div>
+        <div class="field" style="grid-column:1/-1"><label>Deskripsi <span class="hint">(opsional)</span></label><input id="g-desc" value="${escapeAttr(g.desc||'')}" /></div>
+        <div class="field"><label>Poin Minimal</label><input id="g-min" type="number" value="${g.minPoints}" />
+          <div class="hint">Total poin gabungan nasabah ≥ angka ini.</div>
+        </div>
+        <div class="field"><label>Saldo Terakhir Minimal <span class="hint">(Rp)</span></label><input id="g-minbal" type="number" value="${g.minBalance||0}" />
+          <div class="hint">Total saldo terakhir seluruh rekening nasabah ≥ angka ini. Isi 0 jika tanpa syarat saldo.</div>
+        </div>
+      </div>
+    `,
+    onSave(){
+      g.name = $('#g-name').value.trim();
+      g.desc = $('#g-desc').value.trim();
+      g.minPoints = Number($('#g-min').value)||0;
+      g.minBalance = Number($('#g-minbal').value)||0;
+      if(!g.name) return toast('Nama grade wajib diisi','err');
+      if(!id) state.grades.push(g);
+      save(); renderGrades(); toast(id?'Grade diperbarui':'Grade ditambahkan','ok');
+      return true;
+    }
+  });
+}
+
+/* ============================================================
+   HADIAH (with ordering)
+   ============================================================ */
+function getOrderedHadiah(){
+  // ensure orders exist & unique
+  const items = state.hadiah.slice();
+  items.forEach((h,i)=>{ if(typeof h.order !== 'number') h.order = i+1; });
+  return items.sort((a,b)=>a.order - b.order);
+}
+function normalizeOrders(){
+  const items = getOrderedHadiah();
+  items.forEach((h,i)=>{ h.order = i+1; });
+  save();
+}
+function moveHadiah(id, dir){
+  const items = getOrderedHadiah();
+  const idx = items.findIndex(h=>h.id===id);
+  if(idx<0) return;
+  const ni = idx + dir;
+  if(ni<0 || ni>=items.length) return;
+  [items[idx].order, items[ni].order] = [items[ni].order, items[idx].order];
+  normalizeOrders();
+  renderHadiah();
+}
+function renderHadiah(){
+  const tbody = $('#hadiah-tbl tbody');
+  $('#hadiah-empty').style.display = state.hadiah.length?'none':'block';
+  $('#hadiah-tbl').style.display = state.hadiah.length?'table':'none';
+
+  const ordered = getOrderedHadiah();
+  tbody.innerHTML = ordered.map((h,i)=>{
+    const g = state.grades.find(x=>x.id===h.gradeId);
+    const photo = h.photo
+      ? `<img src="${h.photo}" style="width:48px;height:48px;border-radius:8px;object-fit:cover;border:1px solid var(--line-2)"/>`
+      : `<div style="width:48px;height:48px;border-radius:8px;background:#FCFAF3;border:1px dashed var(--line-2);display:grid;place-items:center;color:var(--ink-3)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.1-3.1a2 2 0 0 0-2.8 0L6 21"/></svg></div>`;
+    return `<tr>
+      <td>
+        <div class="order-cell">
+          <span style="font-weight:700;color:var(--ink);min-width:18px">${h.order}</span>
+          <div class="arrows">
+            <button data-move-up="${h.id}" ${i===0?'disabled':''} title="Naik"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m18 15-6-6-6 6"/></svg></button>
+            <button data-move-down="${h.id}" ${i===ordered.length-1?'disabled':''} title="Turun"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="m6 9 6 6 6-6"/></svg></button>
+          </div>
+        </div>
+      </td>
+      <td>${photo}</td>
+      <td>${g?`<span class="tag gold">${escapeHtml(g.name)}</span>`:`<span class="tag silver">— tanpa grade</span>`}</td>
+      <td><div class="nasabah">${escapeHtml(h.name)}</div></td>
+      <td class="muted">${escapeHtml(h.note||'-')}</td>
+      <td class="num" style="text-align:right">${h.value?fmtRp(h.value):'-'}</td>
+      <td class="num" style="text-align:right">${fmt(h.qty||1)}</td>
+      <td>
+        <div class="row-actions">
+          <button class="icon-btn" data-edit-hadiah="${h.id}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4z"/></svg></button>
+          <button class="icon-btn danger" data-del-hadiah="${h.id}"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/></svg></button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+$('#btnAddHadiah').onclick = ()=> openHadiahModal();
+document.addEventListener('click',(e)=>{
+  const ed = e.target.closest('[data-edit-hadiah]');
+  if(ed) openHadiahModal(ed.dataset.editHadiah);
+  const dl = e.target.closest('[data-del-hadiah]');
+  if(dl){
+    if(confirm('Hapus hadiah ini?')){
+      state.hadiah = state.hadiah.filter(h=>h.id!==dl.dataset.delHadiah);
+      normalizeOrders(); renderHadiah(); toast('Hadiah dihapus');
+    }
+  }
+  const up = e.target.closest('[data-move-up]');
+  if(up) moveHadiah(up.dataset.moveUp, -1);
+  const dn = e.target.closest('[data-move-down]');
+  if(dn) moveHadiah(dn.dataset.moveDown, +1);
+});
+
+async function resizeImage(file){
+  return new Promise((resolve, reject)=>{
+    const reader = new FileReader();
+    reader.onload = ev=>{
+      const img = new Image();
+      img.onload = ()=>{
+        const maxDim = 900;
+        let w = img.width, h = img.height;
+        if(Math.max(w,h) > maxDim){
+          if(w>h){ h = h*(maxDim/w); w = maxDim; }
+          else { w = w*(maxDim/h); h = maxDim; }
+        }
+        const cv = document.createElement('canvas');
+        cv.width = w; cv.height = h;
+        cv.getContext('2d').drawImage(img,0,0,w,h);
+        resolve(cv.toDataURL('image/jpeg', 0.82));
+      };
+      img.onerror = reject; img.src = ev.target.result;
+    };
+    reader.onerror = reject; reader.readAsDataURL(file);
+  });
+}
+function openHadiahModal(id){
+  if(!state.grades.length) return toast('Buat grade terlebih dahulu','err');
+  const isNew = !id;
+  const nextOrder = (getOrderedHadiah().slice(-1)[0]?.order || 0) + 1;
+  const h = isNew ? {id:uid(),gradeId:state.grades[0]?.id||'',name:'',note:'',value:0,qty:1,photo:'',order:nextOrder}
+                  : state.hadiah.find(x=>x.id===id);
+  let pendingPhoto = h.photo || '';
+  modal({
+    title: id?'Edit Hadiah':'Tambah Hadiah',
+    body: `
+      <div class="field" style="margin-bottom:14px"><label>Foto Hadiah</label>
+        <div class="photo-up">
+          <div class="photo-preview" id="ph-preview">${pendingPhoto ? `<img src="${pendingPhoto}"/>` : 'Belum ada foto'}</div>
+          <div class="photo-actions">
+            <input type="file" id="ph-file" accept="image/*" hidden />
+            <button type="button" class="btn btn-sm" id="ph-pick">Pilih Foto</button>
+            <button type="button" class="btn btn-sm btn-ghost" id="ph-clear">Hapus Foto</button>
+            <div class="hint" style="max-width:220px">Foto akan tampil saat hadiah diundi. Otomatis di-resize 900px.</div>
+          </div>
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="field"><label>Urutan Pengundian</label><input id="h-order" type="number" min="1" value="${h.order||nextOrder}" />
+          <div class="hint">Angka kecil diundi lebih dulu.</div>
+        </div>
+        <div class="field"><label>Grade</label>
+          <select id="h-grade">
+            ${state.grades.map(g=>`<option value="${g.id}" ${g.id===h.gradeId?'selected':''}>${escapeHtml(g.name)} (min ${fmt(g.minPoints)} poin)</option>`).join('')}
+          </select>
+        </div>
+        <div class="field" style="grid-column:1/-1"><label>Nama Hadiah</label><input id="h-name" value="${escapeAttr(h.name)}" placeholder="mis. Sepeda Motor, Kulkas, Voucher 1jt" /></div>
+        <div class="field"><label>Estimasi Nilai <span class="hint">(Rp)</span></label><input id="h-val" type="number" value="${h.value||0}" /></div>
+        <div class="field"><label>Kuantitas</label><input id="h-qty" type="number" value="${h.qty||1}" min="1" /></div>
+        <div class="field" style="grid-column:1/-1"><label>Catatan <span class="hint">(opsional)</span></label><input id="h-note" value="${escapeAttr(h.note||'')}" /></div>
+      </div>
+    `,
+    onSave(){
+      h.gradeId = $('#h-grade').value;
+      h.name = $('#h-name').value.trim();
+      h.note = $('#h-note').value.trim();
+      h.value = Number($('#h-val').value)||0;
+      h.qty = Math.max(1, Number($('#h-qty').value)||1);
+      h.order = Math.max(1, Number($('#h-order').value)||nextOrder);
+      h.photo = pendingPhoto || '';
+      if(!h.name) return toast('Nama hadiah wajib diisi','err');
+      if(isNew) state.hadiah.push(h);
+      normalizeOrders(); renderHadiah(); toast(id?'Hadiah diperbarui':'Hadiah ditambahkan','ok');
+      return true;
+    }
+  });
+  setTimeout(()=>{
+    $('#ph-pick').onclick = ()=> $('#ph-file').click();
+    $('#ph-clear').onclick = ()=>{ pendingPhoto=''; $('#ph-preview').innerHTML='Belum ada foto'; };
+    $('#ph-file').onchange = async (e)=>{
+      const f = e.target.files[0]; if(!f) return;
+      try{ const url = await resizeImage(f); pendingPhoto = url; $('#ph-preview').innerHTML = `<img src="${url}"/>`; }
+      catch(err){ toast('Gagal memproses foto','err'); }
+    };
+  }, 10);
+}
+
+/* ============================================================
+   HISTORY
+   ============================================================ */
+function renderHistory(){
+  const list = state.history.slice().reverse();
+  const tbody = $('#hist-tbl tbody');
+  $('#hist-empty').style.display = list.length?'none':'block';
+  $('#hist-tbl').style.display = list.length?'table':'none';
+  tbody.innerHTML = list.map(w=>`
+    <tr>
+      <td class="muted" style="font-size:12px">${new Date(w.ts).toLocaleString('id-ID')}</td>
+      <td><span class="tag gold">${escapeHtml(w.gradeName)}</span></td>
+      <td><b>${escapeHtml(w.prizeName)}</b></td>
+      <td>${escapeHtml(w.name)} <span class="muted" style="font-size:11.5px">${escapeHtml(w.branch||'')}</span></td>
+      <td class="acc-no" style="font-size:12px">${escapeHtml(w.cif||'-')}</td>
+      <td class="acc-no">${escapeHtml(maskAcc(w.accNo))}</td>
+      <td class="num" style="text-align:right;font-weight:700">${fmt(w.points)}</td>
+    </tr>
+  `).join('');
+}
+$('#btnExportWinnersXLSX').onclick = ()=>{
+  if(!state.history.length) return toast('Belum ada pemenang','err');
+  const data = [['No','Waktu','Grade','Hadiah','CIF','Nama','No. Rekening','Cabang','Poin','Estimasi Nilai']];
+  state.history.forEach((w,i)=>{
+    data.push([i+1,new Date(w.ts).toLocaleString('id-ID'),w.gradeName,w.prizeName,w.cif||'',w.name,w.accNo,w.branch||'',w.points,w.prizeValue||0]);
+  });
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(data);
+  ws['!cols'] = [{wch:5},{wch:20},{wch:14},{wch:28},{wch:10},{wch:24},{wch:14},{wch:18},{wch:9},{wch:14}];
+  XLSX.utils.book_append_sheet(wb, ws, 'Pemenang');
+  XLSX.writeFile(wb, `pemenang-perdana-plus-${state.period.replace(/\s+/g,'-')}.xlsx`);
+  toast('File Excel berhasil diunduh','ok');
+};
+$('#btnExportWinners').onclick = ()=>{
+  if(!state.history.length) return toast('Belum ada pemenang','err');
+  const head = 'waktu,grade,hadiah,cif,nama,no_rekening,cabang,poin,nilai\n';
+  const rows = state.history.map(w=>[
+    new Date(w.ts).toISOString(), w.gradeName, w.prizeName, w.cif||'', w.name, w.accNo, w.branch||'', w.points, w.prizeValue||0
+  ].map(x=>`"${(x+'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  download('pemenang-perdana-plus.csv', head+rows);
+};
+$('#btnClearWinners').onclick = ()=>{
+  if(!state.history.length) return;
+  if(!confirm('Bersihkan seluruh riwayat pemenang?')) return;
+  state.history = []; save(); renderHistory(); toast('Riwayat dibersihkan');
+};
+
+/* ============================================================
+   SETTINGS / LOGOUT
+   ============================================================ */
+$('#btnSettings').onclick = ()=>{
+  modal({
+    title:'Pengaturan',
+    body:`
+      <div class="form-grid">
+        <div class="field" style="grid-column:1/-1"><label>Periode</label><input id="s-period" value="${escapeAttr(state.period)}" /></div>
+        <div class="field"><label>Password Admin</label><input id="s-pw" type="password" value="${escapeAttr(state.password)}" /></div>
+        <div class="field"><label>Audio Layar Pengundian</label>
+          <select id="s-audio"><option value="1" ${state.audio?'selected':''}>Aktif</option><option value="0" ${!state.audio?'selected':''}>Mati</option></select>
+        </div>
+        <div class="field" style="grid-column:1/-1">
+          <label>Aksi Berbahaya</label>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button class="btn btn-sm" id="s-export">Export Backup (JSON)</button>
+            <button class="btn btn-sm" id="s-import">Import Backup</button>
+            <input type="file" id="s-file" accept=".json" hidden />
+            <button class="btn btn-sm btn-ghost" id="s-reset" style="color:var(--red)">Reset Semua Data</button>
+          </div>
+        </div>
+      </div>
+    `,
+    onSave(){
+      state.period = $('#s-period').value.trim() || state.period;
+      const pw = $('#s-pw').value.trim();
+      if(pw) state.password = pw;
+      state.audio = $('#s-audio').value === '1';
+      save(); renderDashboard(); toast('Pengaturan disimpan','ok');
+      return true;
+    }
+  });
+  setTimeout(()=>{
+    $('#s-export').onclick = (e)=>{ e.preventDefault(); download('perdana-undian-backup.json', JSON.stringify(state,null,2)); };
+    $('#s-import').onclick = (e)=>{ e.preventDefault(); $('#s-file').click(); };
+    $('#s-file').onchange = async (e)=>{
+      const f = e.target.files[0]; if(!f) return;
+      try{ const txt = await f.text(); const j = JSON.parse(txt);
+        state = Object.assign(structuredClone(DEFAULT_STATE), j);
+        save(); toast('Backup berhasil diimport','ok');
+        $('#modal').classList.remove('show');
+        renderDashboard();
+      }catch(err){ toast('File backup tidak valid','err'); }
+    };
+    $('#s-reset').onclick = (e)=>{
+      e.preventDefault();
+      if(!confirm('Reset SEMUA data? Tindakan ini tidak bisa dibatalkan.')) return;
+      state = structuredClone(DEFAULT_STATE); save();
+      $('#modal').classList.remove('show');
+      toast('Data direset','ok'); go('dashboard');
+    };
+  },10);
+};
+$('#btnLogout').onclick = ()=>{ sessionStorage.removeItem(SESSION_KEY); showLogin(); };
+$('#lg-btn').onclick = tryLogin;
+$('#lg-pw').addEventListener('keydown',e=>{ if(e.key==='Enter') tryLogin(); });
+
+/* ============================================================
+   MODAL HELPER
+   ============================================================ */
+let modalSaveFn = null;
+function modal({title, body, onSave}){
+  $('#modal-title').textContent = title;
+  $('#modal-body').innerHTML = body;
+  modalSaveFn = onSave;
+  $('#modal').classList.add('show');
+}
+function closeModal(){ $('#modal').classList.remove('show'); modalSaveFn=null; }
+$('#modal-close').onclick = closeModal;
+$('#modal-cancel').onclick = closeModal;
+$('#modal-save').onclick = ()=>{ if(modalSaveFn && modalSaveFn()===true) closeModal(); };
+$('#modal').addEventListener('click',(e)=>{ if(e.target.id==='modal') closeModal(); });
+
+/* ============================================================
+   DRAWING SCREEN
+   Flow: traverse hadiah list in order (via h.order). Each hadiah has qty slots.
+   ============================================================ */
+let drawSession = null;
+let currentCandidate = null;
+let spinning = false;
+let stopRequested = false;
+let stopAudioFn = null;
+let animRaf = null;
+
+// Reel slots: position is masked? true means show static "*"
+const MASK_POS = i => i>=1 && i<=6; // positions 1..6 are masked, 0 and 7..10 are real digits
+
+function buildSession(){
+  // Flat ordered slot list across all hadiah (sorted by h.order)
+  const slots = [];
+  getOrderedHadiah().forEach(h=>{
+    const g = state.grades.find(x=>x.id===h.gradeId);
+    if(!g) return; // skip if no grade
+    const q = h.qty||1;
+    for(let i=0;i<q;i++) slots.push({hadiah:h, grade:g, slotIx:i+1, slotTotal:q});
+  });
+  return { slots, curIx: 0, sessionWinners: [] };
+}
+
+function openDraw(){
+  const ready = state.rekening.length && state.grades.length && state.hadiah.length;
+  $('#draw-stage').style.display = ready?'flex':'none';
+  $('#draw-empty').style.display = ready?'none':'block';
+  if(!ready) return;
+  if(!drawSession) drawSession = buildSession();
+  $('#drawPeriod').textContent = state.period;
+  $('#btnAudio').classList.toggle('muted', !state.audio);
+  renderDrawStage();
+}
+
+function renderDrawStage(){
+  $('#drawProgress').textContent = `${Math.min(drawSession.curIx+1, drawSession.slots.length)} / ${drawSession.slots.length}`;
+
+  if(drawSession.curIx >= drawSession.slots.length){
+    $('#prizeName').textContent = '🎉 Pengundian Selesai';
+    $('#prizeMeta').innerHTML = '<div class="pm-item">Semua hadiah telah diundi.</div>';
+    $('#centerKicker').textContent = 'Selesai';
+    $('#prizePhotoPlaceholder').style.display='flex';
+    $('#prizePhotoPlaceholder').innerHTML = `<div style="font-size:48px">🎉</div><div>Pengundian Selesai</div><small>Total ${drawSession.sessionWinners.length} pemenang</small>`;
+    const img = $('#prizePhotoWrap img'); if(img) img.remove();
+    setReelToMaskedPlaceholder();
+    $('#winnerName').textContent = '—';
+    $('#winnerMeta').textContent = '';
+    $('#btnSpin').disabled = true; $('#btnConfirm').disabled = true; $('#btnSkip').disabled = true; $('#btnStop').disabled = true;
+    renderWinnersList();
+    return;
+  }
+
+  const slot = drawSession.slots[drawSession.curIx];
+  const prize = slot.hadiah;
+
+  // Prize photo
+  const wrap = $('#prizePhotoWrap');
+  const existImg = wrap.querySelector('img');
+  if(prize.photo){
+    if(existImg) existImg.src = prize.photo;
+    else{ const im=document.createElement('img'); im.src=prize.photo; wrap.appendChild(im); }
+    $('#prizePhotoPlaceholder').style.display='none';
+  }else{
+    if(existImg) existImg.remove();
+    $('#prizePhotoPlaceholder').style.display='flex';
+    $('#prizePhotoPlaceholder').innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M20 12v10H4V12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7zM12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg><div>${escapeHtml(prize.name)}</div><small>Foto hadiah belum tersedia</small>`;
+  }
+
+  // Prize info (NO grade displayed)
+  $('#centerKicker').textContent = `Hadiah ke-${drawSession.curIx+1} dari ${drawSession.slots.length}${slot.slotTotal>1?` · unit ${slot.slotIx}/${slot.slotTotal}`:''}`;
+  $('#prizeName').textContent = prize.name;
+  const metaParts = [];
+  if(prize.value) metaParts.push(`<div class="pm-item">Estimasi nilai <b>${fmtRp(prize.value)}</b></div>`);
+  if(prize.note) metaParts.push(`<div class="pm-item">${escapeHtml(prize.note)}</div>`);
+  $('#prizeMeta').innerHTML = metaParts.join('');
+
+  // controls
+  $('#btnSpin').disabled = false; $('#btnStop').disabled = true;
+  $('#btnConfirm').disabled = !currentCandidate;
+  $('#btnSkip').disabled = false;
+  if(!currentCandidate){
+    setReelToMaskedPlaceholder();
+    $('#winnerName').textContent = '—';
+    $('#winnerMeta').textContent = 'tekan tombol untuk memulai';
+  }
+  renderWinnersList();
+}
+
+function setReelToMaskedPlaceholder(){
+  // 11 slots, masked positions show *, real positions show -
+  const reel = $('#reel');
+  reel.innerHTML = '';
+  for(let i=0;i<ACC_LEN;i++){
+    const d = document.createElement('div');
+    if(MASK_POS(i)){
+      d.className = 'digit mask';
+      d.innerHTML = `<div class="roll" style="transform:translateY(0)"><span>*</span></div>`;
+    }else{
+      d.className = 'digit';
+      d.innerHTML = `<div class="roll" style="transform:translateY(0)"><span>-</span></div>`;
+    }
+    reel.appendChild(d);
+  }
+}
+
+function renderWinnersList(){
+  $('#winCount').textContent = drawSession.sessionWinners.length;
+  $('#winCountSub').textContent = `${drawSession.sessionWinners.length} pemenang`;
+  const list = $('#winners-list');
+  if(!drawSession.sessionWinners.length){
+    list.innerHTML = `<div class="muted" style="padding:30px;text-align:center;font-size:13px">Belum ada pemenang sesi ini.<br><br>Pemenang yang dikonfirmasi akan tercatat di sini.</div>`;
+    return;
+  }
+  list.innerHTML = drawSession.sessionWinners.slice().reverse().map((w,i)=>`
+    <div class="w-item">
+      <div class="ix">${drawSession.sessionWinners.length-i}</div>
+      <div class="body">
+        <div class="nm">${escapeHtml(w.name)}</div>
+        <div class="meta">${escapeHtml(maskAcc(w.accNo))}</div>
+        <div class="pz">🎁 ${escapeHtml(w.prizeName)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function spin(){
+  if(spinning) return;
+  const slot = drawSession.slots[drawSession.curIx];
+  if(!slot) return;
+  const cur = slot.grade;
+
+  const wonKeys = new Set();
+  drawSession.sessionWinners.forEach(w=>wonKeys.add(w.customerKey));
+  state.history.forEach(w=>{ if(w.customerKey) wonKeys.add(w.customerKey); });
+
+  const pool = eligibleCustomersFor(cur).filter(c=>!wonKeys.has(c.key));
+  if(!pool.length){
+    toast('Tidak ada nasabah eligible tersisa untuk grade ini','err');
+    return;
+  }
+  const winner = pool[Math.floor(Math.random()*pool.length)];
+  let target = String(winner.displayAccNo||'');
+  if(target.length < ACC_LEN) target = target.padStart(ACC_LEN, '0');
+  else if(target.length > ACC_LEN) target = target.slice(-ACC_LEN);
+
+  // Build reel: 11 slots, masked positions are static *, others are spinning digits
+  const reel = $('#reel');
+  reel.innerHTML = '';
+  const rollEls = [];
+  for(let i=0;i<ACC_LEN;i++){
+    const d = document.createElement('div');
+    if(MASK_POS(i)){
+      d.className = 'digit mask';
+      d.innerHTML = `<div class="roll" style="transform:translateY(0)"><span>*</span></div>`;
+      reel.appendChild(d);
+      continue;
+    }
+    d.className = 'digit';
+    const roll = document.createElement('div'); roll.className='roll';
+    let strip = '';
+    const cycles = 8;
+    for(let c=0;c<cycles;c++){ for(let n=0;n<10;n++) strip += `<span>${n}</span>`; }
+    roll.innerHTML = strip;
+    d.appendChild(roll); reel.appendChild(d);
+    rollEls.push({el:roll, target:target[i], digit:d});
+  }
+
+  spinning = true; stopRequested = false;
+  $('#btnSpin').disabled = true; $('#btnStop').disabled = false;
+  $('#btnConfirm').disabled = true; $('#btnSkip').disabled = true;
+  $('#winnerName').textContent = '· · ·';
+  $('#winnerMeta').textContent = 'sedang mengundi…';
+  currentCandidate = null;
+
+  // DRUMROLL
+  if(stopAudioFn) stopAudioFn();
+  stopAudioFn = drumrollStart();
+
+  // dynamic digit height (responsive)
+  const digitH = rollEls[0].el.parentElement.offsetHeight || 78;
+
+  rollEls.forEach(r=>{ r._pos = Math.random()*1000; r._speed = 22 + Math.random()*8; });
+
+  // Phase 1: spin forever until Stop pressed
+  await new Promise(resolve=>{
+    function frame(){
+      if(stopRequested){ resolve(); return; }
+      rollEls.forEach(r=>{
+        r._pos = (r._pos + r._speed) % (r.el.children.length * digitH);
+        r.el.style.transform = `translateY(-${r._pos}px)`;
+      });
+      animRaf = requestAnimationFrame(frame);
+    }
+    animRaf = requestAnimationFrame(frame);
+  });
+
+  if(stopAudioFn){ stopAudioFn(); stopAudioFn=null; }
+  if(animRaf){ cancelAnimationFrame(animRaf); animRaf=null; }
+
+  // Phase 2: ALL real digits settle simultaneously
+  rollEls.forEach(r=>{
+    r.el.innerHTML += `<span>${r.target}</span>`;
+    const totalSpans = r.el.children.length;
+    const targetTranslate = (totalSpans-1)*digitH;
+    r.el.style.transition = `transform 700ms cubic-bezier(.12,.7,.18,1)`;
+    requestAnimationFrame(()=>{ r.el.style.transform = `translateY(-${targetTranslate}px)`; });
+  });
+  await new Promise(res=>setTimeout(res, 740));
+  rollEls.forEach(r=> r.digit.classList.add('locked'));
+  lockSound();
+
+  currentCandidate = { customer: winner, prize: slot.hadiah, grade: slot.grade, target };
+  $('#winnerName').textContent = winner.name;
+  $('#winnerMeta').textContent = maskAcc(winner.displayAccNo);
+  spinning = false; stopRequested = false;
+  $('#btnSpin').disabled = false; $('#btnStop').disabled = true;
+  $('#btnConfirm').disabled = false; $('#btnSkip').disabled = false;
+}
+
+$('#btnSpin').onclick = spin;
+$('#btnStop').onclick = ()=>{ if(spinning){ stopRequested = true; $('#btnStop').disabled = true; } };
+$('#btnSkip').onclick = ()=>{
+  if(spinning) return;
+  currentCandidate = null;
+  setReelToMaskedPlaceholder();
+  drawSession.curIx++;
+  renderDrawStage();
+};
+$('#btnConfirm').onclick = ()=>{
+  if(!currentCandidate) return;
+  const {customer, prize, grade} = currentCandidate;
+  const winner = {
+    ts: Date.now(),
+    customerKey: customer.key,
+    cif: customer.cif||'',
+    accNo: customer.displayAccNo, name: customer.name, branch: customer.branch||'',
+    points: customer.totalPoints,
+    gradeName: grade.name, gradeId: grade.id,
+    prizeName: prize.name, prizeId: prize.id, prizeValue: prize.value||0,
+  };
+  drawSession.sessionWinners.push(winner);
+  state.history.push(winner); save();
+  $('#revealName').textContent = customer.name;
+  $('#revealMeta').textContent = maskAcc(customer.displayAccNo);
+  $('#revealPrize').textContent = prize.name;
+  $('#reveal').classList.add('show');
+  fanfare(); popConfetti();
+  drawSession.curIx++;
+  currentCandidate = null;
+};
+$('#revealOk').onclick = ()=>{
+  $('#reveal').classList.remove('show');
+  setReelToMaskedPlaceholder();
+  renderDrawStage();
+};
+
+$('#btnAudio').onclick = ()=>{
+  state.audio = !state.audio; save();
+  $('#btnAudio').classList.toggle('muted', !state.audio);
+  toast(state.audio?'Audio aktif':'Audio dimatikan','ok');
+};
+$('#btnFs').onclick = ()=>{
+  if(!document.fullscreenElement){
+    document.documentElement.requestFullscreen?.();
+    document.body.classList.add('fs');
+  }else{
+    document.exitFullscreen?.(); document.body.classList.remove('fs');
+  }
+};
+document.addEventListener('fullscreenchange', ()=>{ if(!document.fullscreenElement) document.body.classList.remove('fs'); });
+
+$('#winnersTab').onclick = ()=> $('#winnersDrawer').classList.toggle('open');
+$('#winnersClose').onclick = ()=> $('#winnersDrawer').classList.remove('open');
+
+document.addEventListener('keydown', (e)=>{
+  if(!$('#view-draw').classList.contains('active')) return;
+  if($('#modal').classList.contains('show')) return;
+  if(e.key === ' '){ e.preventDefault(); if(spinning) $('#btnStop').click(); else if(!$('#btnSpin').disabled) $('#btnSpin').click(); }
+  if(e.key === 'Enter'){ if(!$('#btnConfirm').disabled) $('#btnConfirm').click(); else if($('#reveal').classList.contains('show')) $('#revealOk').click(); }
+  if(e.key === 'Escape' && $('#reveal').classList.contains('show')) $('#revealOk').click();
+});
+
+function popConfetti(){
+  const colors = ['#F5C518','#D8233E','#2C2A29','#FFD23F','#FFFFFF'];
+  const root = $('#reveal');
+  for(let i=0;i<70;i++){
+    const c = document.createElement('div');
+    c.style.cssText = `position:absolute;width:10px;height:14px;background:${colors[i%colors.length]};
+      left:${50+(Math.random()-.5)*20}%;top:50%;border-radius:2px;
+      transform:rotate(${Math.random()*360}deg);
+      transition:transform 1.6s ease, opacity 1.6s ease;opacity:1;pointer-events:none;`;
+    root.appendChild(c);
+    requestAnimationFrame(()=>{
+      const x = (Math.random()-.5)*900;
+      const y = (Math.random()*-500)-100;
+      c.style.transform = `translate(${x}px, ${y}px) rotate(${Math.random()*720}deg)`;
+      c.style.opacity = '0';
+    });
+    setTimeout(()=>c.remove(), 1700);
+  }
+}
+
+/* ============================================================
+   SAMPLE DATA
+   ============================================================ */
+function sampleGrades(){
+  return [
+    {id:uid(), name:'Grade A', desc:'Hadiah utama (grand prize)', minPoints: 600, minBalance: 5000000},
+    {id:uid(), name:'Grade B', desc:'Hadiah elektronik', minPoints: 300, minBalance: 2000000},
+    {id:uid(), name:'Grade C', desc:'Hadiah hiburan',  minPoints: 200, minBalance: 0},
+  ];
+}
+function sampleHadiah(grades){
+  const g = (n)=>grades.find(x=>x.name===n)?.id;
+  // urutan dari hadiah hiburan ke grand prize (membangun antisipasi)
+  let order = 1;
+  return [
+    {id:uid(), order:order++, gradeId:g('Grade C'), name:'Voucher Belanja Rp 500.000', value:500000, qty:3, note:'', photo:''},
+    {id:uid(), order:order++, gradeId:g('Grade C'), name:'Rice Cooker Miyako',         value:450000, qty:2, note:'', photo:''},
+    {id:uid(), order:order++, gradeId:g('Grade B'), name:'Mesin Cuci LG 7kg',          value:3000000, qty:2, note:'', photo:''},
+    {id:uid(), order:order++, gradeId:g('Grade B'), name:'Smart TV 43" Samsung',       value:4500000, qty:2, note:'', photo:''},
+    {id:uid(), order:order++, gradeId:g('Grade A'), name:'Kulkas 2 Pintu Sharp',       value:5500000, qty:2, note:'', photo:''},
+    {id:uid(), order:order++, gradeId:g('Grade A'), name:'Sepeda Motor Honda Beat',    value:18000000, qty:1, note:'Grand Prize · On the road', photo:''},
+  ];
+}
+function sampleRekening(){
+  const customers = [
+    ['C0001','Siti Nurhaliza','KC Pusat'],
+    ['C0002','Budi Santoso','KC Salatiga'],
+    ['C0003','Agus Pranoto','KC Ungaran'],
+    ['C0004','Dewi Lestari','KC Pusat'],
+    ['C0005','Hendra Kusuma','KC Boyolali'],
+    ['C0006','Rahma Wati','KC Ambarawa'],
+    ['C0007','Ahmad Yusuf','KC Pusat'],
+    ['C0008','Maya Sari','KC Salatiga'],
+    ['C0009','Joko Widodo','KC Ungaran'],
+    ['C0010','Linda Permata','KC Pusat'],
+    ['C0011','Bambang Hartono','KC Boyolali'],
+    ['C0012','Ratna Dewi','KC Ambarawa'],
+    ['C0013','Eko Prasetyo','KC Pusat'],
+    ['C0014','Indira Putri','KC Salatiga'],
+    ['C0015','Dimas Ardian','KC Ungaran'],
+    ['C0016','Sri Wahyuni','KC Pusat'],
+    ['C0017','Taufik Hidayat','KC Boyolali'],
+    ['C0018','Nurul Hidayah','KC Ambarawa'],
+    ['C0019','Wahyu Setiawan','KC Pusat'],
+    ['C0020','Anita Rahmah','KC Salatiga'],
+    ['C0021','Iwan Setiadi','KC Ungaran'],
+    ['C0022','Fitri Handayani','KC Pusat'],
+    ['C0023','Galih Pratama','KC Boyolali'],
+    ['C0024','Larasati Ningrum','KC Ambarawa'],
+    ['C0025','Yanto Saputra','KC Pusat'],
+    ['C0026','Mira Kusumawati','KC Salatiga'],
+    ['C0027','Bayu Aditya','KC Ungaran'],
+    ['C0028','Endang Susilowati','KC Pusat'],
+    ['C0029','Kurnia Ramadhan','KC Boyolali'],
+    ['C0030','Diah Ayu','KC Ambarawa'],
+  ];
+  const balances = [200000,500000,750000,1000000,1500000,2500000,5000000,8000000,12000000,25000000,50000000,80000000,120000000];
+  const recs = [];
+  let counter = 22451;
+  customers.forEach(([cif,name,branch], idx)=>{
+    const numAccounts = (idx===0||idx===9) ? 2 : (idx===3 ? 3 : 1);
+    for(let k=0;k<numAccounts;k++){
+      const accNo = String(10000000000 + counter).slice(-ACC_LEN);
+      counter += 17;
+      recs.push({
+        id: uid(), cif, accNo, name, branch,
+        balance: balances[Math.floor(Math.random()*balances.length)],
+        days: 200 + Math.floor(Math.random()*166),
+      });
+    }
+  });
+  return recs;
+}
+
+function escapeHtml(s){return (s??'').toString().replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function escapeAttr(s){return escapeHtml(s)}
+function download(name, content){
+  const blob = new Blob([content], {type:'text/plain'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name; a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href), 1000);
+}
+
+$$('.nav button[data-view]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.view)));
+
+if(isLoggedIn()){ showApp(); renderDashboard(); } else { showLogin(); }
+</script>
+</body>
+</html>
