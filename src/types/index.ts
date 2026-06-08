@@ -61,10 +61,23 @@ export interface Customer {
   displayAccNo: string;
 }
 
-export interface AppState {
+export interface UndianEvent {
+  id: string;
+  name: string;
   period: string;
+  rekening: Rekening[];
+  grades: Grade[];
+  hadiah: Hadiah[];
+  history: Winner[];
+}
+
+export interface AppState {
   password: string;
   audio: boolean;
+  activeEventId: string;
+  events: UndianEvent[];
+  // Mirror of active event (for backwards-compat with all existing pages)
+  period: string;
   rekening: Rekening[];
   grades: Grade[];
   hadiah: Hadiah[];

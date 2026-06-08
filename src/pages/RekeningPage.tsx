@@ -161,11 +161,18 @@ export default function RekeningPage() {
     const newGrades = sampleGrades();
     const newHadiah = sampleHadiah(newGrades);
     // Write directly to store so grade IDs are preserved (addGrade regenerates IDs)
-    useAppStore.setState(s => ({
-      grades: [...s.grades, ...newGrades],
-      hadiah: [...s.hadiah, ...newHadiah],
-      rekening: [...s.rekening, ...sampleRekening()],
-    }));
+    // Also sync to events[activeEventId] so data persists on event switch
+    useAppStore.setState(s => {
+      const grades = [...s.grades, ...newGrades];
+      const hadiah = [...s.hadiah, ...newHadiah];
+      const rekening = [...s.rekening, ...sampleRekening()];
+      return {
+        grades,
+        hadiah,
+        rekening,
+        events: s.events.map(e => e.id === s.activeEventId ? { ...e, grades, hadiah, rekening } : e),
+      };
+    });
   };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {

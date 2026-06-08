@@ -10,16 +10,26 @@ interface SettingsModalProps {
 }
 
 export default function SettingsModal({ onClose }: SettingsModalProps) {
-  const { period, password, audio, updateSettings, resetAll, importState } = useAppStore(s => ({
+  const {
+    period, password, audio, events, activeEventId,
+    updateSettings, resetAll, importState, updateEventMeta, deleteEvent,
+  } = useAppStore(s => ({
     period: s.period,
     password: s.password,
     audio: s.audio,
+    events: s.events,
+    activeEventId: s.activeEventId,
     updateSettings: s.updateSettings,
     resetAll: s.resetAll,
     importState: s.importState,
+    updateEventMeta: s.updateEventMeta,
+    deleteEvent: s.deleteEvent,
   }));
 
   const importRef = useRef<HTMLInputElement>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editPeriod, setEditPeriod] = useState('');
 
   const [form, setForm] = useState({
     period,
@@ -41,17 +51,13 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
 
   const handleExportBackup = () => {
     const state = useAppStore.getState();
-    const data: Partial<AppState> = {
-      period: state.period,
+    const data = {
       password: state.password,
       audio: state.audio,
-      rekening: state.rekening,
-      grades: state.grades,
-      hadiah: state.hadiah,
-      history: state.history,
+      activeEventId: state.activeEventId,
+      events: state.events,
     };
-    const json = JSON.stringify(data, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -76,10 +82,31 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   };
 
   const handleReset = () => {
-    if (!confirm('PERINGATAN: Ini akan menghapus semua data termasuk rekening, grade, hadiah, dan riwayat. Tindakan ini tidak dapat dibatalkan.\n\nKetuk OK untuk melanjutkan.')) return;
-    if (!confirm('Yakin? Semua data akan dihapus permanen.')) return;
+    if (!confirm('PERINGATAN: Ini akan menghapus semua data undian yang aktif (rekening, grade, hadiah, riwayat). Tindakan ini tidak dapat dibatalkan.\n\nKetuk OK untuk melanjutkan.')) return;
+    if (!confirm('Yakin? Semua data undian aktif akan dihapus permanen.')) return;
     resetAll();
     onClose();
+  };
+
+  const startEdit = (id: string) => {
+    const ev = events.find(e => e.id === id);
+    if (!ev) return;
+    setEditingId(id);
+    setEditName(ev.name);
+    setEditPeriod(ev.period);
+  };
+
+  const saveEdit = () => {
+    if (!editingId || !editName.trim()) return;
+    updateEventMeta(editingId, { name: editName.trim(), period: editPeriod.trim() });
+    setEditingId(null);
+  };
+
+  const handleDeleteEvent = (id: string) => {
+    const ev = events.find(e => e.id === id);
+    if (!ev) return;
+    if (!confirm(`Hapus undian "${ev.name}"? Semua data (rekening, grade, hadiah, riwayat) dalam undian ini akan hilang permanen.`)) return;
+    deleteEvent(id);
   };
 
   return (
@@ -98,7 +125,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
         />
         <motion.div
           className="relative bg-white rounded-2xl shadow-lg flex flex-col overflow-hidden"
-          style={{ width: '100%', maxWidth: '520px', maxHeight: '90vh' }}
+          style={{ width: '100%', maxWidth: '540px', maxHeight: '90vh' }}
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.95, opacity: 0 }}
@@ -119,8 +146,12 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
 
           {/* Body */}
           <div className="flex-1 overflow-y-auto px-6 py-5 flex flex-col gap-5">
-            {/* Basic settings */}
+
+            {/* Active event settings */}
             <div className="flex flex-col gap-4">
+              <div className="text-xs font-semibold text-ink-3 uppercase tracking-wider">
+                Undian Aktif — {events.find(e => e.id === activeEventId)?.name ?? '—'}
+              </div>
               <FormField label="Periode Pengundian">
                 <Input value={form.period} onChange={set('period')} placeholder="Tahun 2026" />
               </FormField>
@@ -135,6 +166,72 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
               </FormField>
             </div>
 
+            {/* Event management */}
+            <div className="flex flex-col gap-3">
+              <div className="text-xs font-semibold text-ink-3 uppercase tracking-wider">Kelola Undian</div>
+              <div className="rounded-xl border border-line overflow-hidden">
+                {events.map((ev, i) => (
+                  <div
+                    key={ev.id}
+                    className={`px-4 py-3 flex flex-col gap-2 ${i > 0 ? 'border-t border-line' : ''} ${ev.id === activeEventId ? 'bg-yellow-tint/60' : 'bg-white'}`}
+                  >
+                    {editingId === ev.id ? (
+                      <div className="flex flex-col gap-2">
+                        <input
+                          autoFocus
+                          value={editName}
+                          onChange={e => setEditName(e.target.value)}
+                          className="px-2.5 py-1.5 text-sm rounded-lg border border-line focus:outline-none focus:ring-1 focus:ring-yellow"
+                          placeholder="Nama undian"
+                        />
+                        <input
+                          value={editPeriod}
+                          onChange={e => setEditPeriod(e.target.value)}
+                          className="px-2.5 py-1.5 text-sm rounded-lg border border-line focus:outline-none focus:ring-1 focus:ring-yellow"
+                          placeholder="Periode"
+                        />
+                        <div className="flex gap-2">
+                          <button onClick={saveEdit} className="px-3 py-1 rounded-lg text-xs font-semibold text-white transition-colors" style={{ background: 'var(--ink)' }}>Simpan</button>
+                          <button onClick={() => setEditingId(null)} className="px-3 py-1 rounded-lg text-xs font-medium text-ink-3 hover:bg-cream border border-line transition-colors">Batal</button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-ink truncate">{ev.name}</span>
+                            {ev.id === activeEventId && (
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold" style={{ background: 'var(--yellow)', color: 'var(--ink)' }}>Aktif</span>
+                            )}
+                          </div>
+                          <div className="text-xs text-ink-3 mt-0.5">
+                            {ev.period} · {ev.rekening.length} rekening · {ev.grades.length} grade · {ev.hadiah.length} hadiah
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <button onClick={() => startEdit(ev.id)} className="p-1.5 rounded-md hover:bg-cream text-ink-3 hover:text-ink transition-colors">
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </button>
+                          <button
+                            onClick={() => handleDeleteEvent(ev.id)}
+                            disabled={events.length <= 1}
+                            className="p-1.5 rounded-md hover:bg-red/10 text-ink-3 hover:text-red transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                            title={events.length <= 1 ? 'Tidak bisa menghapus undian terakhir' : 'Hapus undian'}
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
             {/* Dangerous zone */}
             <div
               className="rounded-xl p-4 flex flex-col gap-3"
@@ -145,7 +242,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                 <div className="flex items-center justify-between">
                   <div>
                     <div className="text-sm font-medium text-ink">Export Backup</div>
-                    <div className="text-xs text-ink-3">Unduh semua data sebagai JSON</div>
+                    <div className="text-xs text-ink-3">Unduh semua data semua undian sebagai JSON</div>
                   </div>
                   <Button variant="secondary" size="sm" onClick={handleExportBackup}>
                     <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -172,7 +269,7 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                     onClick={handleReset}
                     className="text-sm font-medium text-red hover:text-red-deep transition-colors"
                   >
-                    Reset Semua Data...
+                    Reset Data Undian Aktif...
                   </button>
                 </div>
               </div>
