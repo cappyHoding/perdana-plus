@@ -11,6 +11,7 @@ export interface Rekening {
   branch: string;
   balance: number;
   days: number;
+  openDate?: string;
   mutations?: Mutation[];
 }
 

@@ -45,9 +45,18 @@ const PERIOD_MONTHS = [
 ];
 
 export function pointsOfRek(rek: Rekening): number {
+  const openStr = rek.openDate ? normalizeDateStr(rek.openDate) : '';
+
+  // Simple format: poin per active month (floor(balance/100k) each full/partial month)
   if (!rek.mutations?.length) {
-    // Simple format: constant balance assumed across all 12 months
-    return Math.floor((rek.balance || 0) / 100000) * 12;
+    let months = 0;
+    for (const { y, m, days } of PERIOD_MONTHS) {
+      const prefix = `${y}-${String(m).padStart(2, '0')}`;
+      const lastDayStr = `${prefix}-${String(days).padStart(2, '0')}`;
+      if (openStr && openStr > lastDayStr) continue;
+      months++;
+    }
+    return Math.floor((rek.balance || 0) / 100000) * months;
   }
 
   const sorted = [...rek.mutations]
@@ -61,18 +70,32 @@ export function pointsOfRek(rek: Rekening): number {
 
   for (const { y, m, days } of PERIOD_MONTHS) {
     const prefix = `${y}-${String(m).padStart(2, '0')}`;
+    const lastDayStr = `${prefix}-${String(days).padStart(2, '0')}`;
 
-    // Balance at start of month = last mutation with date strictly before this month
+    // Skip months before account opening
+    if (openStr && openStr > lastDayStr) continue;
+
+    // Effective start day: 1 normally, openDay for the opening month
+    const startDay = (openStr && openStr.startsWith(prefix))
+      ? parseInt(openStr.slice(8, 10), 10)
+      : 1;
+    const effectiveDays = days - startDay + 1;
+    const startDayStr = `${prefix}-${String(startDay).padStart(2, '0')}`;
+
+    // Balance before startDay = last mutation with d < startDayStr
     let startBal = 0;
     for (const mut of sorted) {
-      if (mut.d < prefix) startBal = mut.bal;
+      if (mut.d < startDayStr) startBal = mut.bal;
       else break;
     }
 
-    // Mutations within this month, segment-based sum of daily balances
-    const inMonth = sorted.filter(mut => mut.d.startsWith(prefix));
+    // Mutations from startDay onwards within this month
+    const inMonth = sorted.filter(mut =>
+      mut.d.startsWith(prefix) && mut.d >= startDayStr
+    );
+
     let sumDaily = 0;
-    let prevDay = 1;
+    let prevDay = startDay;
     let curBal = startBal;
 
     for (const mut of inMonth) {
@@ -83,7 +106,7 @@ export function pointsOfRek(rek: Rekening): number {
     }
     sumDaily += curBal * (days - prevDay + 1);
 
-    total += Math.floor(sumDaily / days / 100000);
+    total += Math.floor(sumDaily / effectiveDays / 100000);
   }
 
   return total;
