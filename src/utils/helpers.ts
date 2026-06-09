@@ -75,10 +75,16 @@ export function pointsOfRek(rek: Rekening): number {
     // Skip months before account opening
     if (openStr && openStr > lastDayStr) continue;
 
-    // Effective start day: 1 normally, openDay for the opening month
-    const startDay = (openStr && openStr.startsWith(prefix))
-      ? parseInt(openStr.slice(8, 10), 10)
-      : 1;
+    // Effective start day: 1 normally; for opening month, use first mutation with bal>0
+    let startDay = 1;
+    if (openStr && openStr.startsWith(prefix)) {
+      const firstMut = sorted.find(mut =>
+        mut.d.startsWith(prefix) && mut.d >= openStr && mut.bal > 0
+      );
+      startDay = firstMut
+        ? parseInt(firstMut.d.slice(8, 10), 10)
+        : parseInt(openStr.slice(8, 10), 10);
+    }
     const effectiveDays = days - startDay + 1;
     const startDayStr = `${prefix}-${String(startDay).padStart(2, '0')}`;
 
