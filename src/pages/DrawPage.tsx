@@ -433,11 +433,10 @@ export default function DrawPage() {
     >
       <Topbar onOpenSettings={() => setSettingsOpen(true)} />
 
-      <div className="flex-1 flex flex-col items-center px-7 py-4">
-        <div className="w-full flex flex-col gap-3.5" style={{ maxWidth: '1500px' }}>
+      <div className="flex-1 flex flex-col items-center px-7 pt-4 pb-2" style={{ maxWidth: '1500px', width: '100%', margin: '0 auto' }}>
 
           {/* ── Draw Header ── */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between w-full shrink-0">
             <div>
               <div className="text-xs font-semibold uppercase tracking-widest text-ink-2 mb-0.5">
                 Pengundian Hadiah Tahunan
@@ -493,6 +492,9 @@ export default function DrawPage() {
               </div>
             </div>
           </div>
+
+          {/* ── Centered main zone ── */}
+          <div className="flex-1 flex flex-col items-center justify-center gap-3.5 w-full">
 
           {/* ── No valid slots (grade ID mismatch / misconfigured) ── */}
           {hasNoValidSlots && (
@@ -769,7 +771,8 @@ export default function DrawPage() {
             </div>
           )}
 
-        </div>
+          </div>{/* end centered main zone */}
+
       </div>
 
       {/* ── Winners Drawer Tab ── */}
