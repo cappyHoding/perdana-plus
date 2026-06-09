@@ -72,26 +72,15 @@ export default function Topbar({ onOpenSettings }: TopbarProps) {
         <div className="flex items-center gap-4 px-5 h-[71px]">
           {/* Brand */}
           <div className="flex items-center gap-2.5 shrink-0">
-            {/* P icon – BPR Perdana logo mark */}
-            <svg className="w-9 h-9 shrink-0" viewBox="0 0 75 100" xmlns="http://www.w3.org/2000/svg">
-              {/* Bowl */}
-              <circle cx="49" cy="35" r="26" fill="#C7283B" />
-              {/* Stem */}
-              <rect x="10" y="0" width="20" height="92" fill="#C7283B" />
-              {/* Rounded bottom of stem */}
-              <ellipse cx="20" cy="92" rx="10" ry="8" fill="#C7283B" />
-              {/* Bottom-left hook of descender */}
-              <path d="M10 82 Q5 98 20 98 Q11 98 10 90Z" fill="#C7283B" />
-              {/* Yellow counter inside bowl */}
-              <circle cx="52" cy="37" r="16" fill="#F5C518" />
-              {/* Red mask: cover left side so yellow only shows inside counter */}
-              <rect x="10" y="9" width="28" height="52" fill="#C7283B" />
-              {/* Shadow at stem-bowl junction */}
-              <path d="M10 60 Q10 72 21 72 L30 72 V62Z" fill="#9B1E2A" opacity="0.35" />
-            </svg>
+            <div
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-xl font-bold shrink-0"
+              style={{ background: 'var(--yellow)', fontFamily: 'var(--font-display)', color: 'var(--red)' }}
+            >
+              p
+            </div>
             <div>
-              <div className="text-sm font-semibold leading-tight" style={{ color: 'var(--ink-2)' }}>
-                BPR <em className="not-italic font-extrabold" style={{ color: '#C7283B' }}>perdana</em>
+              <div className="text-sm font-semibold leading-tight text-ink">
+                BPR <em className="not-italic text-red">perdana</em>
               </div>
               <div className="text-[10px] text-ink-3 leading-tight">
                 Sistem Pengundian
