@@ -675,12 +675,21 @@ export default function DrawPage() {
 
               {/* Name plate */}
               <div
-                className="mx-auto rounded-xl px-5 py-3 text-center max-w-sm"
+                className="mx-auto rounded-xl px-5 py-3 text-center w-full"
                 style={{ border: '1px solid var(--yellow-tint)', background: 'rgba(255,246,208,.08)' }}
               >
                 {stopped && candidate ? (
                   <>
-                    <div className="text-white font-bold" style={{ fontFamily: 'var(--font-display)', fontSize: '48px', lineHeight: 1.1 }}>
+                    <div
+                      className="text-white font-bold"
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: candidate.name.length > 22 ? '28px' : candidate.name.length > 16 ? '36px' : '48px',
+                        lineHeight: 1.15,
+                        overflowWrap: 'break-word',
+                        wordBreak: 'break-word',
+                      }}
+                    >
                       {candidate.name}
                     </div>
                     <div className="text-xs mt-1 font-mono" style={{ color: 'rgba(245,197,24,.65)' }}>
