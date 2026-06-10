@@ -131,7 +131,7 @@ interface ReelDigitRef {
 // ─── Main DrawPage ────────────────────────────────────────────────────────────
 
 export default function DrawPage() {
-  const { rekening, grades, hadiah, history, addWinner, audio, period } = useAppStore(s => ({
+  const { rekening, grades, hadiah, history, addWinner, audio, period, drawBg } = useAppStore(s => ({
     rekening: s.rekening,
     grades: s.grades,
     hadiah: s.hadiah,
@@ -139,6 +139,7 @@ export default function DrawPage() {
     addWinner: s.addWinner,
     audio: s.audio,
     period: s.period,
+    drawBg: s.drawBg,
   }));
 
   const navigate = useNavigate();
@@ -428,7 +429,9 @@ export default function DrawPage() {
       className="draw-page flex flex-col"
       style={{
         minHeight: '100vh',
-        background: 'radial-gradient(1400px 800px at 50% -10%, #FFE082 0%, #F5C518 35%, #E5B400 100%)',
+        background: drawBg
+          ? `url(${drawBg}) center/cover no-repeat`
+          : 'radial-gradient(1400px 800px at 50% -10%, #FFE082 0%, #F5C518 35%, #E5B400 100%)',
       }}
     >
       <Topbar onOpenSettings={() => setSettingsOpen(true)} />

@@ -75,6 +75,7 @@ export interface UndianEvent {
 export interface AppState {
   password: string;
   audio: boolean;
+  drawBg: string;
   activeEventId: string;
   events: UndianEvent[];
   // Mirror of active event (for backwards-compat with all existing pages)
