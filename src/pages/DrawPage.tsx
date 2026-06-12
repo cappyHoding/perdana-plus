@@ -29,7 +29,7 @@ interface DrawSession {
   skippedWinners: string[];
 }
 
-function buildSession(hadiah: Hadiah[], grades: Grade[]): DrawSession {
+function buildSession(hadiah: Hadiah[], grades: Grade[], history: Winner[] = []): DrawSession {
   const slots: DrawSlot[] = [];
   getOrderedHadiah(hadiah).forEach(h => {
     const g = grades.find(x => x.id === h.gradeId);
@@ -38,7 +38,27 @@ function buildSession(hadiah: Hadiah[], grades: Grade[]): DrawSession {
       slots.push({ hadiah: h, grade: g, slotIx: i + 1, slotTotal: h.qty || 1 });
     }
   });
-  return { slots, curIx: 0, sessionWinners: [], skippedWinners: [] };
+
+  // Restore progress: count how many winners per prize are already in history
+  const prizeWinCounts: Record<string, number> = {};
+  for (const w of history) {
+    prizeWinCounts[w.prizeId] = (prizeWinCounts[w.prizeId] || 0) + 1;
+  }
+
+  let curIx = 0;
+  const sessionWinners: Winner[] = [];
+  for (const slot of slots) {
+    const drawn = prizeWinCounts[slot.hadiah.id] || 0;
+    if (slot.slotIx <= drawn) {
+      const match = history.filter(w => w.prizeId === slot.hadiah.id)[slot.slotIx - 1];
+      if (match) sessionWinners.push(match);
+      curIx++;
+    } else {
+      break;
+    }
+  }
+
+  return { slots, curIx, sessionWinners, skippedWinners: [] };
 }
 
 // ─── Confetti ────────────────────────────────────────────────────────────────
@@ -174,13 +194,13 @@ export default function DrawPage() {
     const s = sessionRef.current;
     const notStarted = !s || (s.curIx === 0 && s.sessionWinners.length === 0);
     if (notStarted) {
-      sessionRef.current = buildSession(hadiah, grades);
+      sessionRef.current = buildSession(hadiah, grades, history);
       reRender();
     }
   }, [hadiah, grades]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!sessionRef.current) {
-    sessionRef.current = buildSession(hadiah, grades);
+    sessionRef.current = buildSession(hadiah, grades, history);
   }
   const session = sessionRef.current;
   const curSlot = session.slots[session.curIx] ?? null;
