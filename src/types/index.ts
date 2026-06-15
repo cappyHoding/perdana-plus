@@ -47,6 +47,7 @@ export interface Winner {
   prizeName: string;
   prizeId: string;
   prizeValue: number;
+  ticketNo?: number;
 }
 
 export interface Customer {

@@ -197,6 +197,20 @@ export function eligibleCustomersFor(grade: Grade, rekening: Rekening[]): Custom
   );
 }
 
+export function drawTicket(
+  eligibles: Customer[]
+): { customer: Customer; ticketNo: number } | null {
+  const totalTickets = eligibles.reduce((sum, c) => sum + c.totalPoints, 0);
+  if (totalTickets === 0) return null;
+  const drawn = Math.floor(Math.random() * totalTickets) + 1;
+  let offset = 0;
+  for (const c of eligibles) {
+    offset += c.totalPoints;
+    if (drawn <= offset) return { customer: c, ticketNo: drawn };
+  }
+  return { customer: eligibles[eligibles.length - 1], ticketNo: drawn };
+}
+
 export function maskAcc(acc: string): string {
   if (!acc) return '';
   const s = String(acc);

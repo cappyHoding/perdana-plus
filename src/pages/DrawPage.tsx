@@ -6,6 +6,7 @@ import Topbar from '../components/layout/Topbar';
 import {
   getOrderedHadiah,
   eligibleCustomersFor,
+  drawTicket,
   maskAcc,
   fmt,
   fmtRp,
@@ -179,9 +180,10 @@ export default function DrawPage() {
 
   // ── Reel refs ──
   const digitRefs = useRef<ReelDigitRef[]>(
-    Array.from({ length: 11 }, () => ({ rollEl: null, targetDigit: '0' }))
+    Array.from({ length: 8 }, () => ({ rollEl: null, targetDigit: '0' }))
   );
-  const rollContainerRefs = useRef<(HTMLDivElement | null)[]>(Array(11).fill(null));
+  const rollContainerRefs = useRef<(HTMLDivElement | null)[]>(Array(8).fill(null));
+  const pendingTicketNoRef = useRef<number | null>(null);
 
   // ── UI state ──
   const [revealWinner, setRevealWinner] = useState<Winner | null>(null);
@@ -231,34 +233,33 @@ export default function DrawPage() {
   };
 
   // ── Spin logic ──
-  // Active spinning positions: 0,7,8,9,10 (real digits)
-  const ACTIVE_POSITIONS = [0, 7, 8, 9, 10];
-  const MASK_POSITIONS = [1, 2, 3, 4, 5, 6];
+  const ACTIVE_POSITIONS = [0, 1, 2, 3, 4, 5, 6, 7];
+  const MASK_POSITIONS: number[] = [];
 
   const startSpin = useCallback(() => {
     if (!curSlot || spinning) return;
 
-    // Pick winner
+    // Pick winner via ticket draw
     const allWinnerKeys = new Set([
       ...history.map(w => w.customerKey),
       ...session.sessionWinners.map(w => w.customerKey),
       ...session.skippedWinners,
     ]);
-    const eligibles = eligibleCustomersFor(curSlot.grade, rekening).filter(c => !allWinnerKeys.has(c.key));
+    const eligibles = eligibleCustomersFor(curSlot.grade, rekening)
+      .filter(c => !allWinnerKeys.has(c.key) && c.totalPoints > 0);
 
     if (!eligibles.length) {
       alert(`Tidak ada nasabah eligible tersisa untuk ${curSlot.grade.name}`);
       return;
     }
 
-    // Weighted random by total points (more points = higher probability)
-    const totalPoints = eligibles.reduce((s, c) => s + (c.totalPoints || 1), 0);
-    let rng = Math.random() * totalPoints;
-    let winner = eligibles[eligibles.length - 1];
-    for (const c of eligibles) {
-      rng -= (c.totalPoints || 1);
-      if (rng <= 0) { winner = c; break; }
+    const result = drawTicket(eligibles);
+    if (!result) {
+      alert(`Tidak ada nasabah dengan poin untuk ${curSlot.grade.name}`);
+      return;
     }
+    const { customer: winner, ticketNo } = result;
+    pendingTicketNoRef.current = ticketNo;
     setCandidate(winner);
     setSpinning(true);
     setStopped(false);
@@ -269,7 +270,7 @@ export default function DrawPage() {
     }
 
     const digitH = getDigitHeight();
-    const accNo = winner.displayAccNo.padStart(11, '0');
+    const ticketStr = ticketNo.toString().padStart(8, '0');
 
     // Initialize rolls for active positions
     ACTIVE_POSITIONS.forEach(pos => {
@@ -286,7 +287,7 @@ export default function DrawPage() {
       // Start at position 0
       el.style.transition = 'none';
       el.style.transform = 'translateY(0px)';
-      digitRefs.current[pos].targetDigit = accNo[pos] ?? '0';
+      digitRefs.current[pos].targetDigit = ticketStr[pos] ?? '0';
     });
 
     // Animation loop — fast spin
@@ -352,7 +353,9 @@ export default function DrawPage() {
       prizeName: curSlot.hadiah.name,
       prizeId: curSlot.hadiah.id,
       prizeValue: curSlot.hadiah.value,
+      ticketNo: pendingTicketNoRef.current ?? undefined,
     };
+    pendingTicketNoRef.current = null;
 
     addWinner(winner);
     session.sessionWinners.push(winner);
@@ -386,6 +389,7 @@ export default function DrawPage() {
     if (!candidate || !curSlot) return;
     if (!confirm(`Tandai ${candidate.name} sebagai tidak sah dan undi ulang untuk hadiah "${curSlot.hadiah.name}"?`)) return;
     session.skippedWinners.push(candidate.key);
+    pendingTicketNoRef.current = null;
     setSpinning(false);
     setStopped(false);
     setCandidate(null);
@@ -676,26 +680,18 @@ export default function DrawPage() {
                 className="text-[11px] font-semibold uppercase tracking-widest mb-3 text-center"
                 style={{ color: 'var(--yellow)' }}
               >
-                Nomor Rekening Pemenang
+                Nomor Undian Pemenang
               </div>
 
               {/* Digit cells */}
               <div className="flex items-center justify-center gap-1.5 mb-3">
-                {Array.from({ length: 11 }, (_, i) => {
-                  const isActive = ACTIVE_POSITIONS.includes(i);
-                  const isMask = MASK_POSITIONS.includes(i);
-                  return (
-                    <div key={i} className={`digit ${isMask ? 'mask' : ''}`}>
-                      {isMask ? (
-                        <span>*</span>
-                      ) : (
-                        <div className="roll" ref={setRollRef(i)}>
-                          <span>—</span>
-                        </div>
-                      )}
+                {Array.from({ length: 8 }, (_, i) => (
+                  <div key={i} className="digit">
+                    <div className="roll" ref={setRollRef(i)}>
+                      <span>—</span>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
 
               {/* Name plate */}
@@ -718,7 +714,7 @@ export default function DrawPage() {
                       {candidate.name}
                     </div>
                     <div className="text-xs mt-1 font-mono" style={{ color: 'rgba(245,197,24,.65)' }}>
-                      {maskAcc(candidate.displayAccNo)} · {candidate.branch}
+                      Tiket #{pendingTicketNoRef.current?.toString().padStart(8, '0')} · {maskAcc(candidate.displayAccNo)} · {candidate.branch}
                     </div>
                   </>
                 ) : spinning ? (
@@ -940,6 +936,11 @@ export default function DrawPage() {
               >
                 {revealWinner.name}
               </h2>
+              {revealWinner.ticketNo != null && (
+                <div className="text-sm font-mono mb-1" style={{ color: 'var(--red)' }}>
+                  Tiket #{revealWinner.ticketNo.toString().padStart(8, '0')}
+                </div>
+              )}
               <div className="font-mono text-base mb-4" style={{ color: 'var(--ink-3)' }}>
                 {maskAcc(revealWinner.accNo)}
               </div>
