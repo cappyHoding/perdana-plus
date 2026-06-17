@@ -61,6 +61,8 @@ export interface Customer {
   totalLastBalance: number;
   displayAccount?: Rekening;
   displayAccNo: string;
+  ticketStart: number;
+  ticketEnd: number;
 }
 
 export interface UndianEvent {
