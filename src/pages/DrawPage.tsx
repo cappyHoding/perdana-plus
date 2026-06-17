@@ -6,6 +6,7 @@ import Topbar from '../components/layout/Topbar';
 import {
   getOrderedHadiah,
   eligibleCustomersFor,
+  drawTicket,
   maskAcc,
   fmt,
   fmtRp,
@@ -29,7 +30,7 @@ interface DrawSession {
   skippedWinners: string[];
 }
 
-function buildSession(hadiah: Hadiah[], grades: Grade[]): DrawSession {
+function buildSession(hadiah: Hadiah[], grades: Grade[], history: Winner[] = []): DrawSession {
   const slots: DrawSlot[] = [];
   getOrderedHadiah(hadiah).forEach(h => {
     const g = grades.find(x => x.id === h.gradeId);
@@ -38,7 +39,27 @@ function buildSession(hadiah: Hadiah[], grades: Grade[]): DrawSession {
       slots.push({ hadiah: h, grade: g, slotIx: i + 1, slotTotal: h.qty || 1 });
     }
   });
-  return { slots, curIx: 0, sessionWinners: [], skippedWinners: [] };
+
+  // Restore progress: count how many winners per prize are already in history
+  const prizeWinCounts: Record<string, number> = {};
+  for (const w of history) {
+    prizeWinCounts[w.prizeId] = (prizeWinCounts[w.prizeId] || 0) + 1;
+  }
+
+  let curIx = 0;
+  const sessionWinners: Winner[] = [];
+  for (const slot of slots) {
+    const drawn = prizeWinCounts[slot.hadiah.id] || 0;
+    if (slot.slotIx <= drawn) {
+      const match = history.filter(w => w.prizeId === slot.hadiah.id)[slot.slotIx - 1];
+      if (match) sessionWinners.push(match);
+      curIx++;
+    } else {
+      break;
+    }
+  }
+
+  return { slots, curIx, sessionWinners, skippedWinners: [] };
 }
 
 // ─── Confetti ────────────────────────────────────────────────────────────────
@@ -131,7 +152,7 @@ interface ReelDigitRef {
 // ─── Main DrawPage ────────────────────────────────────────────────────────────
 
 export default function DrawPage() {
-  const { rekening, grades, hadiah, history, addWinner, audio, period } = useAppStore(s => ({
+  const { rekening, grades, hadiah, history, addWinner, audio, period, drawBg } = useAppStore(s => ({
     rekening: s.rekening,
     grades: s.grades,
     hadiah: s.hadiah,
@@ -139,6 +160,7 @@ export default function DrawPage() {
     addWinner: s.addWinner,
     audio: s.audio,
     period: s.period,
+    drawBg: s.drawBg,
   }));
 
   const navigate = useNavigate();
@@ -158,9 +180,10 @@ export default function DrawPage() {
 
   // ── Reel refs ──
   const digitRefs = useRef<ReelDigitRef[]>(
-    Array.from({ length: 11 }, () => ({ rollEl: null, targetDigit: '0' }))
+    Array.from({ length: 8 }, () => ({ rollEl: null, targetDigit: '0' }))
   );
-  const rollContainerRefs = useRef<(HTMLDivElement | null)[]>(Array(11).fill(null));
+  const rollContainerRefs = useRef<(HTMLDivElement | null)[]>(Array(8).fill(null));
+  const pendingTicketNoRef = useRef<number | null>(null);
 
   // ── UI state ──
   const [revealWinner, setRevealWinner] = useState<Winner | null>(null);
@@ -173,13 +196,13 @@ export default function DrawPage() {
     const s = sessionRef.current;
     const notStarted = !s || (s.curIx === 0 && s.sessionWinners.length === 0);
     if (notStarted) {
-      sessionRef.current = buildSession(hadiah, grades);
+      sessionRef.current = buildSession(hadiah, grades, history);
       reRender();
     }
   }, [hadiah, grades]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!sessionRef.current) {
-    sessionRef.current = buildSession(hadiah, grades);
+    sessionRef.current = buildSession(hadiah, grades, history);
   }
   const session = sessionRef.current;
   const curSlot = session.slots[session.curIx] ?? null;
@@ -210,34 +233,33 @@ export default function DrawPage() {
   };
 
   // ── Spin logic ──
-  // Active spinning positions: 0,7,8,9,10 (real digits)
-  const ACTIVE_POSITIONS = [0, 7, 8, 9, 10];
-  const MASK_POSITIONS = [1, 2, 3, 4, 5, 6];
+  const ACTIVE_POSITIONS = [0, 1, 2, 3, 4, 5, 6, 7];
+  const MASK_POSITIONS: number[] = [];
 
   const startSpin = useCallback(() => {
     if (!curSlot || spinning) return;
 
-    // Pick winner
+    // Pick winner via ticket draw
     const allWinnerKeys = new Set([
       ...history.map(w => w.customerKey),
       ...session.sessionWinners.map(w => w.customerKey),
       ...session.skippedWinners,
     ]);
-    const eligibles = eligibleCustomersFor(curSlot.grade, rekening).filter(c => !allWinnerKeys.has(c.key));
+    const eligibles = eligibleCustomersFor(curSlot.grade, rekening)
+      .filter(c => !allWinnerKeys.has(c.key) && c.totalPoints > 0);
 
     if (!eligibles.length) {
       alert(`Tidak ada nasabah eligible tersisa untuk ${curSlot.grade.name}`);
       return;
     }
 
-    // Weighted random by total points (more points = higher probability)
-    const totalPoints = eligibles.reduce((s, c) => s + (c.totalPoints || 1), 0);
-    let rng = Math.random() * totalPoints;
-    let winner = eligibles[eligibles.length - 1];
-    for (const c of eligibles) {
-      rng -= (c.totalPoints || 1);
-      if (rng <= 0) { winner = c; break; }
+    const result = drawTicket(eligibles);
+    if (!result) {
+      alert(`Tidak ada nasabah dengan poin untuk ${curSlot.grade.name}`);
+      return;
     }
+    const { customer: winner, ticketNo } = result;
+    pendingTicketNoRef.current = ticketNo;
     setCandidate(winner);
     setSpinning(true);
     setStopped(false);
@@ -248,7 +270,7 @@ export default function DrawPage() {
     }
 
     const digitH = getDigitHeight();
-    const accNo = winner.displayAccNo.padStart(11, '0');
+    const ticketStr = ticketNo.toString().padStart(8, '0');
 
     // Initialize rolls for active positions
     ACTIVE_POSITIONS.forEach(pos => {
@@ -265,7 +287,7 @@ export default function DrawPage() {
       // Start at position 0
       el.style.transition = 'none';
       el.style.transform = 'translateY(0px)';
-      digitRefs.current[pos].targetDigit = accNo[pos] ?? '0';
+      digitRefs.current[pos].targetDigit = ticketStr[pos] ?? '0';
     });
 
     // Animation loop — fast spin
@@ -331,7 +353,9 @@ export default function DrawPage() {
       prizeName: curSlot.hadiah.name,
       prizeId: curSlot.hadiah.id,
       prizeValue: curSlot.hadiah.value,
+      ticketNo: pendingTicketNoRef.current ?? undefined,
     };
+    pendingTicketNoRef.current = null;
 
     addWinner(winner);
     session.sessionWinners.push(winner);
@@ -365,6 +389,7 @@ export default function DrawPage() {
     if (!candidate || !curSlot) return;
     if (!confirm(`Tandai ${candidate.name} sebagai tidak sah dan undi ulang untuk hadiah "${curSlot.hadiah.name}"?`)) return;
     session.skippedWinners.push(candidate.key);
+    pendingTicketNoRef.current = null;
     setSpinning(false);
     setStopped(false);
     setCandidate(null);
@@ -428,16 +453,17 @@ export default function DrawPage() {
       className="draw-page flex flex-col"
       style={{
         minHeight: '100vh',
-        background: 'radial-gradient(1400px 800px at 50% -10%, #FFE082 0%, #F5C518 35%, #E5B400 100%)',
+        background: drawBg
+          ? `url(${drawBg}) center/cover no-repeat`
+          : 'radial-gradient(1400px 800px at 50% -10%, #FFE082 0%, #F5C518 35%, #E5B400 100%)',
       }}
     >
       <Topbar onOpenSettings={() => setSettingsOpen(true)} />
 
-      <div className="flex-1 flex flex-col items-center px-7 py-4">
-        <div className="w-full flex flex-col gap-3.5" style={{ maxWidth: '1500px' }}>
+      <div className="flex-1 flex flex-col items-center px-7 pt-4 pb-2" style={{ maxWidth: '1500px', width: '100%', margin: '0 auto' }}>
 
           {/* ── Draw Header ── */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between w-full shrink-0">
             <div>
               <div className="text-xs font-semibold uppercase tracking-widest text-ink-2 mb-0.5">
                 Pengundian Hadiah Tahunan
@@ -494,6 +520,9 @@ export default function DrawPage() {
             </div>
           </div>
 
+          {/* ── Centered main zone ── */}
+          <div className="flex-1 flex flex-col items-center justify-center gap-3.5 w-full">
+
           {/* ── No valid slots (grade ID mismatch / misconfigured) ── */}
           {hasNoValidSlots && (
             <div
@@ -541,67 +570,6 @@ export default function DrawPage() {
             </div>
           )}
 
-          {/* ── Big Stage ── */}
-          {!isEmpty && !isComplete && curSlot && (
-            <div
-              className="rounded-2xl"
-              style={{
-                background: '#fff',
-                border: '1px solid #E5B400',
-                boxShadow: 'var(--shadow-lg)',
-                padding: '18px 26px 20px',
-              }}
-            >
-              <div className="grid gap-6" style={{ gridTemplateColumns: '240px 1fr' }}>
-                {/* Photo */}
-                <div
-                  className="rounded-xl overflow-hidden flex items-center justify-center"
-                  style={{
-                    aspectRatio: '1/1',
-                    background: 'linear-gradient(135deg, var(--yellow-tint), var(--yellow-soft))',
-                  }}
-                >
-                  {curSlot.hadiah.photo ? (
-                    <img src={curSlot.hadiah.photo} alt={curSlot.hadiah.name} className="w-full h-full object-cover" />
-                  ) : (
-                    <svg className="w-20 h-20 text-yellow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.2}>
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
-                    </svg>
-                  )}
-                </div>
-
-                {/* Info */}
-                <div className="flex flex-col items-center justify-center gap-3 text-center">
-                  <div className="text-[11px] font-semibold uppercase tracking-widest text-ink-3">
-                    Hadiah ke-{session.curIx + 1} dari {totalSlots} · unit {curSlot.slotIx}/{curSlot.slotTotal}
-                  </div>
-                  <h2
-                    className="font-extrabold leading-tight"
-                    style={{
-                      fontFamily: 'var(--font-display)',
-                      fontSize: '38px',
-                      fontWeight: 800,
-                      color: 'var(--ink)',
-                    }}
-                  >
-                    {curSlot.hadiah.name}
-                  </h2>
-                  <div className="flex flex-col items-center gap-2">
-                    {curSlot.hadiah.note && (
-                      <span className="text-sm text-ink-3">{curSlot.hadiah.note}</span>
-                    )}
-                    <span
-                      className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
-                      style={{ background: 'var(--yellow-tint)', border: '1px solid var(--yellow-soft)' }}
-                    >
-                      {curSlot.grade.name}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* ── Complete state ── */}
           {!isEmpty && !hasNoValidSlots && isComplete && (
             <div
@@ -635,64 +603,128 @@ export default function DrawPage() {
             </div>
           )}
 
-          {/* ── Reel Section ── */}
+          {/* ── Big Stage + Reel (side-by-side) ── */}
           {!isEmpty && !isComplete && curSlot && (
-            <div
-              className="rounded-2xl"
-              style={{
-                background: 'linear-gradient(160deg, #1a1817, var(--ink))',
-                border: '2px solid #E5B400',
-                borderRadius: '16px',
-                padding: '16px 18px 18px',
-              }}
-            >
-              {/* Label */}
-              <div
-                className="text-[11px] font-semibold uppercase tracking-widest mb-3 text-center"
-                style={{ color: 'var(--yellow)' }}
-              >
-                Nomor Rekening Pemenang
-              </div>
+            <div className="grid gap-4" style={{ gridTemplateColumns: '1fr 1fr', alignItems: 'stretch' }}>
 
-              {/* Digit cells */}
-              <div className="flex items-center justify-center gap-1.5 mb-3">
-                {Array.from({ length: 11 }, (_, i) => {
-                  const isActive = ACTIVE_POSITIONS.includes(i);
-                  const isMask = MASK_POSITIONS.includes(i);
-                  return (
-                    <div key={i} className={`digit ${isMask ? 'mask' : ''}`}>
-                      {isMask ? (
-                        <span>*</span>
-                      ) : (
-                        <div className="roll" ref={setRollRef(i)}>
-                          <span>—</span>
-                        </div>
+              {/* Left: Prize Card */}
+              <div
+                className="rounded-2xl flex flex-col"
+                style={{
+                  background: '#fff',
+                  border: '1px solid #E5B400',
+                  boxShadow: 'var(--shadow-lg)',
+                  padding: '18px 26px 20px',
+                }}
+              >
+                <div className="grid gap-6 flex-1" style={{ gridTemplateColumns: '200px 1fr' }}>
+                  {/* Photo */}
+                  <div
+                    className="rounded-xl overflow-hidden flex items-center justify-center self-center"
+                    style={{
+                      aspectRatio: '1/1',
+                      background: 'linear-gradient(135deg, var(--yellow-tint), var(--yellow-soft))',
+                    }}
+                  >
+                    {curSlot.hadiah.photo ? (
+                      <img src={curSlot.hadiah.photo} alt={curSlot.hadiah.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <svg className="w-20 h-20 text-yellow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                      </svg>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex flex-col items-center justify-center gap-3 text-center">
+                    <div className="text-[11px] font-semibold uppercase tracking-widest text-ink-3">
+                      Hadiah ke-{session.curIx + 1} dari {totalSlots} · unit {curSlot.slotIx}/{curSlot.slotTotal}
+                    </div>
+                    <h2
+                      className="font-extrabold leading-tight"
+                      style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: '38px',
+                        fontWeight: 800,
+                        color: 'var(--ink)',
+                      }}
+                    >
+                      {curSlot.hadiah.name}
+                    </h2>
+                    <div className="flex flex-col items-center gap-2">
+                      {curSlot.hadiah.note && (
+                        <span className="text-sm text-ink-3">{curSlot.hadiah.note}</span>
                       )}
+                      <span
+                        className="px-2.5 py-0.5 rounded-full text-xs font-semibold"
+                        style={{ background: 'var(--yellow-tint)', border: '1px solid var(--yellow-soft)' }}
+                      >
+                        {curSlot.grade.name}
+                      </span>
                     </div>
-                  );
-                })}
+                  </div>
+                </div>
               </div>
 
-              {/* Name plate */}
+              {/* Right: Reel Section */}
               <div
-                className="mx-auto rounded-xl px-5 py-3 text-center max-w-sm"
-                style={{ border: '1px solid var(--yellow-tint)', background: 'rgba(255,246,208,.08)' }}
+                className="rounded-2xl flex flex-col items-center justify-center gap-4"
+                style={{
+                  background: 'linear-gradient(160deg, #1a1817, var(--ink))',
+                  border: '2px solid #E5B400',
+                  padding: '24px 28px',
+                }}
               >
-                {stopped && candidate ? (
-                  <>
-                    <div className="text-white font-bold" style={{ fontFamily: 'var(--font-display)', fontSize: '48px', lineHeight: 1.1 }}>
-                      {candidate.name}
+                {/* Label */}
+                <div
+                  className="text-[11px] font-semibold uppercase tracking-widest text-center"
+                  style={{ color: 'var(--yellow)' }}
+                >
+                  Nomor Undian Pemenang
+                </div>
+
+                {/* Digit cells */}
+                <div className="flex items-center justify-center gap-1.5">
+                  {Array.from({ length: 8 }, (_, i) => (
+                    <div key={i} className="digit">
+                      <div className="roll" ref={setRollRef(i)}>
+                        <span>—</span>
+                      </div>
                     </div>
-                    <div className="text-xs mt-1 font-mono" style={{ color: 'rgba(245,197,24,.65)' }}>
-                      {maskAcc(candidate.displayAccNo)} · {candidate.branch}
-                    </div>
-                  </>
-                ) : spinning ? (
-                  <div className="text-sm" style={{ color: 'rgba(245,197,24,.5)' }}>Mengundi...</div>
-                ) : (
-                  <div className="text-sm" style={{ color: 'rgba(245,197,24,.4)' }}>Tekan Mulai Putar</div>
-                )}
+                  ))}
+                </div>
+
+                {/* Name plate */}
+                <div
+                  className="rounded-xl px-5 py-3 text-center w-full"
+                  style={{ border: '1px solid var(--yellow-tint)', background: 'rgba(255,246,208,.08)' }}
+                >
+                  {stopped && candidate ? (
+                    <>
+                      <div
+                        className="text-white font-bold"
+                        style={{
+                          fontFamily: 'var(--font-display)',
+                          fontSize: candidate.name.length > 22 ? '28px' : candidate.name.length > 16 ? '36px' : '48px',
+                          lineHeight: 1.15,
+                          overflowWrap: 'break-word',
+                          wordBreak: 'break-word',
+                        }}
+                      >
+                        {candidate.name}
+                      </div>
+                      <div className="text-xs mt-1 font-mono" style={{ color: 'rgba(245,197,24,.65)' }}>
+                        Tiket #{pendingTicketNoRef.current?.toString().padStart(8, '0')} · {maskAcc(candidate.displayAccNo)} · {candidate.branch}
+                      </div>
+                    </>
+                  ) : spinning ? (
+                    <div className="text-sm" style={{ color: 'rgba(245,197,24,.5)' }}>Mengundi...</div>
+                  ) : (
+                    <div className="text-sm" style={{ color: 'rgba(245,197,24,.4)' }}>Tekan Mulai Putar</div>
+                  )}
+                </div>
               </div>
+
             </div>
           )}
 
@@ -760,7 +792,8 @@ export default function DrawPage() {
             </div>
           )}
 
-        </div>
+          </div>{/* end centered main zone */}
+
       </div>
 
       {/* ── Winners Drawer Tab ── */}
@@ -862,7 +895,11 @@ export default function DrawPage() {
           return (
           <motion.div
             className="fixed inset-0 z-[90] flex items-center justify-center"
-            style={{ background: 'radial-gradient(900px 600px at 50% 30%, #FFE082 0%, #F5C518 50%, #E5B400 100%)' }}
+            style={{
+                background: drawBg
+                  ? `url(${drawBg}) center/cover no-repeat`
+                  : 'radial-gradient(900px 600px at 50% 30%, #FFE082 0%, #F5C518 50%, #E5B400 100%)',
+              }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -905,6 +942,11 @@ export default function DrawPage() {
               >
                 {revealWinner.name}
               </h2>
+              {revealWinner.ticketNo != null && (
+                <div className="text-sm font-mono mb-1" style={{ color: 'var(--red)' }}>
+                  Tiket #{revealWinner.ticketNo.toString().padStart(8, '0')}
+                </div>
+              )}
               <div className="font-mono text-base mb-4" style={{ color: 'var(--ink-3)' }}>
                 {maskAcc(revealWinner.accNo)}
               </div>

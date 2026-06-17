@@ -11,6 +11,7 @@ import RekeningPage from './pages/RekeningPage';
 import GradePage from './pages/GradePage';
 import HadiahPage from './pages/HadiahPage';
 import RiwayatPage from './pages/RiwayatPage';
+import TiketPage from './pages/TiketPage';
 import DrawPage from './pages/DrawPage';
 
 function AppContent() {
@@ -35,6 +36,7 @@ function AppContent() {
           <Route path="/grade" element={<GradePage />} />
           <Route path="/hadiah" element={<HadiahPage />} />
           <Route path="/riwayat" element={<RiwayatPage />} />
+          <Route path="/tiket" element={<TiketPage />} />
         </Route>
 
         {/* Draw page — protected but no sidebar */}

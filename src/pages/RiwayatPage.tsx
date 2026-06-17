@@ -21,12 +21,13 @@ export default function RiwayatPage() {
       'Nama Pemenang': w.name,
       Cabang: w.branch,
       CIF: w.cif,
+      'No. Tiket': w.ticketNo != null ? w.ticketNo.toString().padStart(8, '0') : '',
       'No. Rekening': maskAcc(w.accNo),
       Poin: w.points,
       'Estimasi Nilai': w.prizeValue,
     }));
     const ws = XLSX.utils.json_to_sheet(rows);
-    ws['!cols'] = [5, 20, 14, 28, 10, 24, 14, 18, 9, 14].map(w => ({ wch: w }));
+    ws['!cols'] = [5, 20, 14, 28, 10, 24, 14, 12, 18, 9, 14].map(w => ({ wch: w }));
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Riwayat Undian');
     XLSX.writeFile(wb, 'riwayat-undian.xlsx');
@@ -40,11 +41,12 @@ export default function RiwayatPage() {
       w.name,
       w.branch,
       w.cif,
+      w.ticketNo != null ? w.ticketNo.toString().padStart(8, '0') : '',
       maskAcc(w.accNo),
       w.points,
       w.prizeValue,
     ]);
-    const header = ['Waktu', 'Grade', 'Hadiah', 'Nama Pemenang', 'Cabang', 'CIF', 'No. Rekening', 'Poin', 'Est. Nilai'];
+    const header = ['Waktu', 'Grade', 'Hadiah', 'Nama Pemenang', 'Cabang', 'CIF', 'No. Tiket', 'No. Rekening', 'Poin', 'Est. Nilai'];
     const csv = [header, ...rows].map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -96,6 +98,7 @@ export default function RiwayatPage() {
               <th className="text-left px-4 py-3 text-xs font-semibold text-ink-3 uppercase tracking-wide">Hadiah</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-ink-3 uppercase tracking-wide">Pemenang</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-ink-3 uppercase tracking-wide">CIF</th>
+              <th className="text-left px-4 py-3 text-xs font-semibold text-ink-3 uppercase tracking-wide">No. Tiket</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-ink-3 uppercase tracking-wide">No. Rekening</th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-ink-3 uppercase tracking-wide">Poin</th>
             </tr>
@@ -103,7 +106,7 @@ export default function RiwayatPage() {
           <tbody>
             {sorted.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-sm text-ink-3">
+                <td colSpan={8} className="px-4 py-10 text-center text-sm text-ink-3">
                   Belum ada riwayat undian.
                 </td>
               </tr>
@@ -124,6 +127,9 @@ export default function RiwayatPage() {
                     <div className="text-xs text-ink-3">{w.branch}</div>
                   </td>
                   <td className="px-4 py-3 text-xs text-ink-3">{w.cif || '—'}</td>
+                  <td className="px-4 py-3 font-mono text-xs text-ink-2">
+                    {w.ticketNo != null ? w.ticketNo.toString().padStart(8, '0') : '—'}
+                  </td>
                   <td className="px-4 py-3 font-mono text-xs text-ink-2">{maskAcc(w.accNo)}</td>
                   <td className="px-4 py-3 text-right font-semibold text-red" style={{ fontFamily: 'var(--font-mono)' }}>
                     {fmt(w.points)}

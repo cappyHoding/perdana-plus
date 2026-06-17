@@ -20,20 +20,102 @@ function parseDate(date: unknown): number {
   return isNaN(d.getTime()) ? 0 : d.getTime();
 }
 
+// Normalize any date input to YYYY-MM-DD string for timezone-safe comparisons
+function normalizeDateStr(date: unknown): string {
+  if (!date) return '';
+  const s = String(date).trim();
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
+  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/);
+  if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+  const n = Number(date);
+  if (!isNaN(n) && n > 40000 && n < 60000)
+    return new Date((n - 25569) * 86400000).toISOString().slice(0, 10);
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? '' : d.toISOString().slice(0, 10);
+}
+
+// Calculation period: June 2025 – May 2026 (12 months), hardcoded per business rules
+const PERIOD_MONTHS = [
+  { y: 2025, m: 6, days: 30 }, { y: 2025, m: 7, days: 31 },
+  { y: 2025, m: 8, days: 31 }, { y: 2025, m: 9, days: 30 },
+  { y: 2025, m: 10, days: 31 }, { y: 2025, m: 11, days: 30 },
+  { y: 2025, m: 12, days: 31 }, { y: 2026, m: 1, days: 31 },
+  { y: 2026, m: 2, days: 28 }, { y: 2026, m: 3, days: 31 },
+  { y: 2026, m: 4, days: 30 }, { y: 2026, m: 5, days: 31 },
+];
+
 export function pointsOfRek(rek: Rekening): number {
-  if (rek.mutations?.length) {
-    const sorted = [...rek.mutations]
-      .map(m => ({ bal: m.balance || 0, ts: parseDate(m.date) }))
-      .filter(m => m.ts > 0)
-      .sort((a, b) => a.ts - b.ts);
-    if (!sorted.length) return 0;
-    return sorted.reduce((sum, m, i) => {
-      const next = sorted[i + 1];
-      const days = next ? Math.max(1, Math.round((next.ts - m.ts) / 86400000)) : 1;
-      return sum + Math.floor(m.bal / 100000) * days;
-    }, 0);
+  const openStr = rek.openDate ? normalizeDateStr(rek.openDate) : '';
+
+  // Simple format: poin per active month (floor(balance/100k) each full/partial month)
+  if (!rek.mutations?.length) {
+    let months = 0;
+    for (const { y, m, days } of PERIOD_MONTHS) {
+      const prefix = `${y}-${String(m).padStart(2, '0')}`;
+      const lastDayStr = `${prefix}-${String(days).padStart(2, '0')}`;
+      if (openStr && openStr > lastDayStr) continue;
+      months++;
+    }
+    return Math.floor((rek.balance || 0) / 100000) * months;
   }
-  return Math.floor((rek.balance || 0) * (rek.days || 0) / 100000);
+
+  const sorted = [...rek.mutations]
+    .map(m => ({ d: normalizeDateStr(m.date), bal: m.balance || 0 }))
+    .filter(m => m.d !== '')
+    .sort((a, b) => a.d.localeCompare(b.d));
+
+  if (!sorted.length) return 0;
+
+  let total = 0;
+
+  for (const { y, m, days } of PERIOD_MONTHS) {
+    const prefix = `${y}-${String(m).padStart(2, '0')}`;
+    const lastDayStr = `${prefix}-${String(days).padStart(2, '0')}`;
+
+    // Skip months before account opening
+    if (openStr && openStr > lastDayStr) continue;
+
+    // Effective start day: 1 normally; for opening month, use first mutation with bal>0
+    let startDay = 1;
+    if (openStr && openStr.startsWith(prefix)) {
+      const firstMut = sorted.find(mut =>
+        mut.d.startsWith(prefix) && mut.d >= openStr && mut.bal > 0
+      );
+      startDay = firstMut
+        ? parseInt(firstMut.d.slice(8, 10), 10)
+        : parseInt(openStr.slice(8, 10), 10);
+    }
+    const effectiveDays = days - startDay + 1;
+    const startDayStr = `${prefix}-${String(startDay).padStart(2, '0')}`;
+
+    // Balance before startDay = last mutation with d < startDayStr
+    let startBal = 0;
+    for (const mut of sorted) {
+      if (mut.d < startDayStr) startBal = mut.bal;
+      else break;
+    }
+
+    // Mutations from startDay onwards within this month
+    const inMonth = sorted.filter(mut =>
+      mut.d.startsWith(prefix) && mut.d >= startDayStr
+    );
+
+    let sumDaily = 0;
+    let prevDay = startDay;
+    let curBal = startBal;
+
+    for (const mut of inMonth) {
+      const day = parseInt(mut.d.slice(8, 10), 10);
+      sumDaily += curBal * (day - prevDay);
+      curBal = mut.bal;
+      prevDay = day;
+    }
+    sumDaily += curBal * (days - prevDay + 1);
+
+    total += Math.floor(sumDaily / effectiveDays / 100000);
+  }
+
+  return total;
 }
 
 export function avgBalanceRek(rek: Rekening): number {
@@ -113,6 +195,20 @@ export function eligibleCustomersFor(grade: Grade, rekening: Rekening[]): Custom
   return getCustomers(rekening).filter(
     (c) => c.totalPoints >= grade.minPoints && c.totalLastBalance >= minBal
   );
+}
+
+export function drawTicket(
+  eligibles: Customer[]
+): { customer: Customer; ticketNo: number } | null {
+  const totalTickets = eligibles.reduce((sum, c) => sum + c.totalPoints, 0);
+  if (totalTickets === 0) return null;
+  const drawn = Math.floor(Math.random() * totalTickets) + 1;
+  let offset = 0;
+  for (const c of eligibles) {
+    offset += c.totalPoints;
+    if (drawn <= offset) return { customer: c, ticketNo: drawn };
+  }
+  return { customer: eligibles[eligibles.length - 1], ticketNo: drawn };
 }
 
 export function maskAcc(acc: string): string {

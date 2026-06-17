@@ -24,7 +24,7 @@ function RekeningForm({
     name: initial?.name ?? '',
     branch: initial?.branch ?? '',
     balance: String(initial?.balance ?? ''),
-    days: String(initial?.days ?? ''),
+    openDate: initial?.openDate ?? '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -37,7 +37,6 @@ function RekeningForm({
     else if (form.accNo.length !== 11) errs.accNo = 'No rekening harus 11 digit';
     if (!form.name) errs.name = 'Nama wajib diisi';
     if (!form.balance || isNaN(Number(form.balance))) errs.balance = 'Saldo tidak valid';
-    if (!form.days || isNaN(Number(form.days))) errs.days = 'Hari tidak valid';
     setErrors(errs);
     return Object.keys(errs).length === 0;
   };
@@ -50,7 +49,8 @@ function RekeningForm({
       name: form.name.trim(),
       branch: form.branch.trim(),
       balance: Number(form.balance),
-      days: Number(form.days),
+      days: 0,
+      openDate: form.openDate.trim() || undefined,
       mutations: initial?.mutations,
     });
   };
@@ -71,14 +71,12 @@ function RekeningForm({
       <FormField label="Cabang">
         <Input value={form.branch} onChange={set('branch')} placeholder="Cabang Utama" />
       </FormField>
-      <div className="grid grid-cols-2 gap-4">
-        <FormField label="Hari Aktif" required error={errors.days}>
-          <Input type="number" value={form.days} onChange={set('days')} placeholder="365" error={!!errors.days} />
-        </FormField>
-        <FormField label="Saldo Rata-rata (Rp)" required error={errors.balance}>
-          <Input type="number" value={form.balance} onChange={set('balance')} placeholder="1000000" error={!!errors.balance} />
-        </FormField>
-      </div>
+      <FormField label="Saldo Rata-rata (Rp)" required error={errors.balance}>
+        <Input type="number" value={form.balance} onChange={set('balance')} placeholder="1000000" error={!!errors.balance} />
+      </FormField>
+      <FormField label="Tgl Buka Rekening">
+        <Input value={form.openDate} onChange={set('openDate')} placeholder="2025-06-25 (kosongkan jika sebelum Jun 2025)" />
+      </FormField>
       <div className="flex justify-end gap-2 pt-2">
         <ModalFooter onCancel={onCancel} onSave={handleSave} />
       </div>
@@ -198,6 +196,10 @@ export default function RekeningPage() {
           const accNo = String(r['accNo'] || r['no_rekening'] || r['No Rekening'] || r['no rekening'] || '').trim();
           if (!accNo) continue;
           if (!groups.has(accNo)) {
+            const rawOpen = r['openDate'] || r['tglBuka'] || r['tgl_buka'] || r['Tgl Buka'] || '';
+            const openDateVal = rawOpen instanceof Date
+              ? rawOpen.toISOString().slice(0, 10)
+              : String(rawOpen).trim();
             groups.set(accNo, {
               rek: {
                 accNo,
@@ -206,6 +208,7 @@ export default function RekeningPage() {
                 branch: String(r['branch'] || r['cabang'] || r['Cabang'] || '').trim(),
                 balance: 0,
                 days: 0,
+                openDate: openDateVal || undefined,
               },
               mutations: [],
             });
@@ -231,9 +234,13 @@ export default function RekeningPage() {
         setRekening([...rekening, ...newReks]);
         alert(`Berhasil import ${newReks.length} rekening (format mutasi harian)`);
       } else {
-        // Sederhana format
+        // Sederhana format — days tidak dipakai, poin dihitung per bulan aktif
         const newReks: Rekening[] = rows.map(r => {
           const row = r as Record<string, unknown>;
+          const rawOpen = row['openDate'] || row['tglBuka'] || row['tgl_buka'] || row['Tgl Buka'] || '';
+          const openDateVal = rawOpen instanceof Date
+            ? (rawOpen as Date).toISOString().slice(0, 10)
+            : String(rawOpen).trim();
           return {
             id: uid(),
             cif: String(row['cif'] || row['CIF'] || '').trim(),
@@ -241,7 +248,8 @@ export default function RekeningPage() {
             name: String(row['name'] || row['nama'] || row['Nama'] || '').trim(),
             branch: String(row['branch'] || row['cabang'] || row['Cabang'] || '').trim(),
             balance: Number(row['balance'] || row['saldo'] || row['Saldo'] || 0),
-            days: Number(row['days'] || row['hari'] || row['Hari'] || 0),
+            days: 0,
+            openDate: openDateVal || undefined,
           };
         }).filter(r => r.accNo);
         setRekening([...rekening, ...newReks]);
@@ -275,29 +283,33 @@ export default function RekeningPage() {
 
   const downloadTemplate = () => {
     const wb = XLSX.utils.book_new();
-    // Sheet 1: Sederhana — satu baris per rekening
+
+    // Sheet 1: Sederhana — satu baris per rekening, tanpa data tanggal
+    // openDate: kosongkan jika rekening dibuka sebelum Jun 2025 (dihitung penuh 12 bulan)
     const ws1 = XLSX.utils.aoa_to_sheet([
-      ['cif', 'accNo', 'name', 'branch', 'balance', 'days'],
-      ['CIF001234', '10000022451', 'Budi Santoso', 'Cabang Utama', 5000000, 365],
-      ['CIF001235', '10000022452', 'Siti Rahayu', 'Cabang Selatan', 2000000, 180],
+      ['cif', 'accNo', 'name', 'branch', 'balance', 'openDate'],
+      ['CIF001234', '10000022451', 'Budi Santoso', 'Cabang Utama', 5000000, ''],
+      ['CIF001235', '10000022452', 'Siti Rahayu', 'Cabang Selatan', 2000000, '2025-08-01'],
     ]);
-    ws1['!cols'] = [10, 14, 24, 18, 14, 8].map(w => ({ wch: w }));
+    ws1['!cols'] = [10, 14, 24, 18, 14, 12].map(w => ({ wch: w }));
     XLSX.utils.book_append_sheet(wb, ws1, 'Sederhana');
-    // Sheet 2: Mutasi Saldo — satu baris per perubahan saldo (bukan per hari)
-    // Setiap baris = tanggal saldo BERUBAH ke nilai tersebut
-    // Poin dihitung: floor(saldo/100.000) × jumlah_hari_saldo_berlaku
+
+    // Sheet 2: Mutasi Saldo — satu baris per PERUBAHAN saldo, periode Jun 2025–Mei 2026
+    // openDate: isi di baris PERTAMA setiap rekening saja (baris berikutnya kosong)
+    // Kosongkan openDate jika rekening dibuka sebelum Jun 2025
     const ws2 = XLSX.utils.aoa_to_sheet([
-      ['accNo', 'cif', 'name', 'branch', 'date', 'balance'],
-      // Rekening 1 — 3 kali perubahan saldo
-      ['10000022451', 'CIF001234', 'Budi Santoso', 'Cabang Utama', '2026-01-01', 5000000],
-      ['10000022451', 'CIF001234', 'Budi Santoso', 'Cabang Utama', '2026-02-15', 5500000],
-      ['10000022451', 'CIF001234', 'Budi Santoso', 'Cabang Utama', '2026-05-10', 4800000],
-      // Rekening 2 — 2 kali perubahan saldo
-      ['10000022452', 'CIF001235', 'Siti Rahayu', 'Cabang Selatan', '2026-01-01', 2000000],
-      ['10000022452', 'CIF001235', 'Siti Rahayu', 'Cabang Selatan', '2026-03-20', 3000000],
+      ['accNo', 'cif', 'name', 'branch', 'date', 'balance', 'openDate'],
+      // Rekening 1 — rekening lama (openDate kosong = hitung penuh)
+      ['10000022451', 'CIF001234', 'Budi Santoso', 'Cabang Utama', '2025-06-01', 5000000, ''],
+      ['10000022451', 'CIF001234', 'Budi Santoso', 'Cabang Utama', '2025-09-15', 5500000, ''],
+      ['10000022451', 'CIF001234', 'Budi Santoso', 'Cabang Utama', '2026-01-10', 4800000, ''],
+      // Rekening 2 — rekening baru, dibuka 1 Agustus 2025
+      ['10000022452', 'CIF001235', 'Siti Rahayu', 'Cabang Selatan', '2025-08-01', 2000000, '2025-08-01'],
+      ['10000022452', 'CIF001235', 'Siti Rahayu', 'Cabang Selatan', '2025-10-20', 3000000, ''],
     ]);
-    ws2['!cols'] = [14, 10, 24, 18, 12, 14].map(w => ({ wch: w }));
+    ws2['!cols'] = [14, 10, 24, 18, 12, 14, 12].map(w => ({ wch: w }));
     XLSX.utils.book_append_sheet(wb, ws2, 'Mutasi Saldo');
+
     XLSX.writeFile(wb, 'template-rekening.xlsx');
   };
 
@@ -365,20 +377,24 @@ export default function RekeningPage() {
           <div>
             <span className="font-semibold">Format Sederhana</span>
             {' — 1 baris per rekening: '}
-            {['cif', 'accNo', 'name', 'branch', 'balance', 'days'].map((c, i, a) => (
+            {['cif', 'accNo', 'name', 'branch', 'balance', 'openDate'].map((c, i, a) => (
               <span key={c}><span className="font-mono bg-white/70 px-1 rounded">{c}</span>{i < a.length - 1 ? ', ' : ''}</span>
             ))}
-            {'. Poin = floor(saldo × hari / 100.000).'}
+            {'. Kolom '}
+            <span className="font-mono bg-white/70 px-1 rounded">openDate</span>
+            {' opsional — isi jika rekening dibuka dalam periode Jun 2025–Mei 2026. Poin = floor(saldo / 100.000) × jumlah bulan aktif.'}
           </div>
           <div>
             <span className="font-semibold">Format Mutasi Saldo</span>
-            {' — 1 baris per perubahan saldo: '}
+            {' — 1 baris per perubahan saldo (periode Jun 2025–Mei 2026): '}
             {['accNo', 'cif', 'name', 'branch', 'date', 'balance'].map((c, i, a) => (
               <span key={c}><span className="font-mono bg-white/70 px-1 rounded">{c}</span>{i < a.length - 1 ? ', ' : ''}</span>
             ))}
             {'. Kolom '}
             <span className="font-mono bg-white/70 px-1 rounded">date</span>
-            {' = tanggal saldo berubah (format YYYY-MM-DD atau DD/MM/YYYY). Poin dihitung per hari berdasarkan saldo yang berlaku antar tanggal. Download '}
+            {' = tanggal saldo berubah. Kolom '}
+            <span className="font-mono bg-white/70 px-1 rounded">openDate</span>
+            {' opsional — isi di baris pertama tiap rekening jika dibuka dalam periode. Poin per bulan = floor(rata-rata saldo harian / 100.000), bulan pembukaan dihitung sejak hari buka. Download '}
             <button onClick={downloadTemplate} className="underline font-semibold hover:text-ink transition-colors">template .xlsx</button>
             {', '}
             <a href="/templates/template_rekening_sederhana.csv" download className="underline font-semibold hover:text-ink transition-colors">.csv sederhana</a>
@@ -425,7 +441,7 @@ export default function RekeningPage() {
               <th className="text-left px-4 py-3 text-xs font-semibold text-ink-3 uppercase tracking-wide">Nasabah</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-ink-3 uppercase tracking-wide">CIF</th>
               <th className="text-left px-4 py-3 text-xs font-semibold text-ink-3 uppercase tracking-wide">Cabang</th>
-              <th className="text-right px-4 py-3 text-xs font-semibold text-ink-3 uppercase tracking-wide">Hari</th>
+              <th className="text-right px-4 py-3 text-xs font-semibold text-ink-3 uppercase tracking-wide">Mutasi</th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-ink-3 uppercase tracking-wide">Saldo Rata-rata</th>
               <th className="text-right px-4 py-3 text-xs font-semibold text-ink-3 uppercase tracking-wide">Poin Rek.</th>
               <th className="px-4 py-3 w-20"></th>
@@ -445,7 +461,7 @@ export default function RekeningPage() {
                   <td className="px-4 py-3 font-medium text-ink">{r.name}</td>
                   <td className="px-4 py-3 text-ink-3 text-xs">{r.cif || '—'}</td>
                   <td className="px-4 py-3 text-ink-2 text-xs">{r.branch || '—'}</td>
-                  <td className="px-4 py-3 text-right text-ink-2">{r.mutations?.length ? r.mutations.length : r.days}</td>
+                  <td className="px-4 py-3 text-right text-ink-2">{r.mutations?.length ? r.mutations.length : '—'}</td>
                   <td className="px-4 py-3 text-right text-ink-2">{fmtRp(avgBalanceRek(r))}</td>
                   <td className="px-4 py-3 text-right font-semibold text-red" style={{ fontFamily: 'var(--font-mono)' }}>
                     {fmt(pointsOfRek(r))}
@@ -488,14 +504,17 @@ export default function RekeningPage() {
         <div className="grid grid-cols-2 gap-6">
           <div>
             <div className="text-xs font-semibold text-ink-2 mb-2 uppercase tracking-wide">Sederhana</div>
-            <pre className="text-xs bg-cream rounded-lg p-3 border border-line overflow-x-auto text-ink-2 font-mono leading-relaxed">{`cif       | accNo        | name  | branch | balance | days
-CIF001234 | 10000022451  | Budi  | Utama  | 5000000 | 365`}</pre>
+            <pre className="text-xs bg-cream rounded-lg p-3 border border-line overflow-x-auto text-ink-2 font-mono leading-relaxed">{`cif       | accNo        | name  | branch | balance | openDate
+CIF001234 | 10000022451  | Budi  | Utama  | 5000000 |           ← rekening lama
+CIF001235 | 10000022452  | Siti  | Selatan| 2000000 | 2025-08-01← rekening baru`}</pre>
           </div>
           <div>
-            <div className="text-xs font-semibold text-ink-2 mb-2 uppercase tracking-wide">Mutasi Harian</div>
-            <pre className="text-xs bg-cream rounded-lg p-3 border border-line overflow-x-auto text-ink-2 font-mono leading-relaxed">{`accNo        | cif      | name | branch | date       | balance
-10000022451  | CIF001   | Budi | Utama  | 2026-01-01 | 5000000
-10000022451  | CIF001   | Budi | Utama  | 2026-01-02 | 5100000`}</pre>
+            <div className="text-xs font-semibold text-ink-2 mb-2 uppercase tracking-wide">Mutasi Saldo</div>
+            <pre className="text-xs bg-cream rounded-lg p-3 border border-line overflow-x-auto text-ink-2 font-mono leading-relaxed">{`accNo        | ... | date       | balance | openDate
+10000022451  | ... | 2025-06-01 | 5000000 |           ← baris 1, rekening lama
+10000022451  | ... | 2025-09-15 | 5500000 |           ← baris 2+ kosong
+10000022452  | ... | 2025-08-01 | 2000000 | 2025-08-01← baris 1, rekening baru
+10000022452  | ... | 2025-10-20 | 3000000 |           ← baris 2+ kosong`}</pre>
           </div>
         </div>
       </div>

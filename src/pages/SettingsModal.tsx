@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useAppStore } from '../store/useAppStore';
 import Button from '../components/ui/Button';
 import FormField, { Input, Select } from '../components/ui/FormField';
+import { resizeImageToDataURL } from '../utils/helpers';
 import type { AppState } from '../types';
 
 interface SettingsModalProps {
@@ -11,12 +12,13 @@ interface SettingsModalProps {
 
 export default function SettingsModal({ onClose }: SettingsModalProps) {
   const {
-    period, password, audio, events, activeEventId,
+    period, password, audio, drawBg, events, activeEventId,
     updateSettings, resetAll, importState, updateEventMeta, deleteEvent,
   } = useAppStore(s => ({
     period: s.period,
     password: s.password,
     audio: s.audio,
+    drawBg: s.drawBg,
     events: s.events,
     activeEventId: s.activeEventId,
     updateSettings: s.updateSettings,
@@ -27,6 +29,19 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
   }));
 
   const importRef = useRef<HTMLInputElement>(null);
+  const bgRef = useRef<HTMLInputElement>(null);
+
+  const handleBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const dataUrl = await resizeImageToDataURL(file, 1920);
+      updateSettings({ drawBg: dataUrl });
+    } catch {
+      alert('Gagal memuat gambar.');
+    }
+    e.target.value = '';
+  };
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editPeriod, setEditPeriod] = useState('');
@@ -164,6 +179,45 @@ export default function SettingsModal({ onClose }: SettingsModalProps) {
                   <option value="false">Mati</option>
                 </Select>
               </FormField>
+            </div>
+
+            {/* Draw background */}
+            <div className="flex flex-col gap-3">
+              <div className="text-xs font-semibold text-ink-3 uppercase tracking-wider">Latar Layar Pengundian</div>
+              <div className="rounded-xl border border-line p-3 flex flex-col gap-3">
+                {drawBg ? (
+                  <div className="relative rounded-lg overflow-hidden" style={{ aspectRatio: '16/5' }}>
+                    <img src={drawBg} alt="background" className="w-full h-full object-cover" />
+                    <button
+                      onClick={() => updateSettings({ drawBg: '' })}
+                      className="absolute top-2 right-2 w-7 h-7 rounded-lg flex items-center justify-center transition-colors"
+                      style={{ background: 'rgba(0,0,0,.55)', color: '#fff' }}
+                      title="Hapus latar"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                ) : (
+                  <div
+                    className="rounded-lg border-2 border-dashed border-line flex items-center justify-center"
+                    style={{ aspectRatio: '16/5' }}
+                  >
+                    <span className="text-xs text-ink-3">Belum ada latar — menggunakan default</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <Button variant="secondary" size="sm" onClick={() => bgRef.current?.click()}>
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                    </svg>
+                    Upload Gambar
+                  </Button>
+                  <span className="text-xs text-ink-3">JPG, PNG, WebP · disarankan 1920×1080</span>
+                </div>
+                <input ref={bgRef} type="file" accept="image/*" className="hidden" onChange={handleBgUpload} />
+              </div>
             </div>
 
             {/* Event management */}

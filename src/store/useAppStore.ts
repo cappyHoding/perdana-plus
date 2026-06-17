@@ -26,7 +26,7 @@ interface AppStore extends AppState {
   addWinner: (w: Winner) => void;
   clearHistory: () => void;
   // Settings
-  updateSettings: (s: Partial<Pick<AppState, 'period' | 'password' | 'audio'>>) => void;
+  updateSettings: (s: Partial<Pick<AppState, 'period' | 'password' | 'audio' | 'drawBg'>>) => void;
   resetAll: () => void;
   importState: (s: Partial<AppState>) => void;
   // Events
@@ -39,6 +39,7 @@ interface AppStore extends AppState {
 const defaultState: AppState = {
   password: 'perdana2026',
   audio: true,
+  drawBg: '',
   activeEventId: '',
   events: [],
   period: 'Tahun 2026',
@@ -192,6 +193,7 @@ export const useAppStore = create<AppStore>()(
             ...s,
             ...(d.password ? { password: d.password } : {}),
             ...(d.audio != null ? { audio: d.audio } : {}),
+            ...(d.drawBg != null ? { drawBg: d.drawBg } : {}),
             events: d.events!,
             activeEventId: active?.id ?? s.activeEventId,
             period: active?.period ?? s.period,
