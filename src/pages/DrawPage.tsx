@@ -603,21 +603,21 @@ export default function DrawPage() {
             </div>
           )}
 
-          {/* ── Big Stage + Reel (side-by-side) ── */}
+          {/* ── Big Stage + Reel (vertikal, diperbesar) ── */}
           {!isEmpty && !isComplete && curSlot && (
-            <div className="grid gap-4" style={{ gridTemplateColumns: '1fr 1fr', alignItems: 'stretch' }}>
+            <div className="flex flex-col gap-4 w-full">
 
-              {/* Left: Prize Card */}
+              {/* Prize Card */}
               <div
                 className="rounded-2xl flex flex-col"
                 style={{
                   background: '#fff',
                   border: '1px solid #E5B400',
                   boxShadow: 'var(--shadow-lg)',
-                  padding: '18px 26px 20px',
+                  padding: '24px 36px 28px',
                 }}
               >
-                <div className="grid gap-6 flex-1" style={{ gridTemplateColumns: '200px 1fr' }}>
+                <div className="grid gap-8 flex-1" style={{ gridTemplateColumns: '260px 1fr' }}>
                   {/* Photo */}
                   <div
                     className="rounded-xl overflow-hidden flex items-center justify-center self-center"
@@ -629,7 +629,7 @@ export default function DrawPage() {
                     {curSlot.hadiah.photo ? (
                       <img src={curSlot.hadiah.photo} alt={curSlot.hadiah.name} className="w-full h-full object-cover" />
                     ) : (
-                      <svg className="w-20 h-20 text-yellow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.2}>
+                      <svg className="w-24 h-24 text-yellow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.2}>
                         <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
                       </svg>
                     )}
@@ -644,7 +644,7 @@ export default function DrawPage() {
                       className="font-extrabold leading-tight"
                       style={{
                         fontFamily: 'var(--font-display)',
-                        fontSize: '38px',
+                        fontSize: '46px',
                         fontWeight: 800,
                         color: 'var(--ink)',
                       }}
@@ -666,25 +666,25 @@ export default function DrawPage() {
                 </div>
               </div>
 
-              {/* Right: Reel Section */}
+              {/* Reel Section */}
               <div
-                className="rounded-2xl flex flex-col items-center justify-center gap-4"
+                className="rounded-2xl flex flex-col items-center justify-center gap-5"
                 style={{
                   background: 'linear-gradient(160deg, #1a1817, var(--ink))',
                   border: '2px solid #E5B400',
-                  padding: '24px 28px',
+                  padding: '32px 40px',
                 }}
               >
                 {/* Label */}
                 <div
-                  className="text-[11px] font-semibold uppercase tracking-widest text-center"
+                  className="text-[12px] font-semibold uppercase tracking-widest text-center"
                   style={{ color: 'var(--yellow)' }}
                 >
                   Nomor Undian Pemenang
                 </div>
 
                 {/* Digit cells */}
-                <div className="flex items-center justify-center gap-1.5">
+                <div className="flex items-center justify-center gap-2" style={{ transform: 'scale(1.2)', transformOrigin: 'center' }}>
                   {Array.from({ length: 8 }, (_, i) => (
                     <div key={i} className="digit">
                       <div className="roll" ref={setRollRef(i)}>
@@ -696,7 +696,7 @@ export default function DrawPage() {
 
                 {/* Name plate */}
                 <div
-                  className="rounded-xl px-5 py-3 text-center w-full"
+                  className="rounded-xl px-6 py-4 text-center w-full"
                   style={{ border: '1px solid var(--yellow-tint)', background: 'rgba(255,246,208,.08)' }}
                 >
                   {stopped && candidate ? (
@@ -705,7 +705,7 @@ export default function DrawPage() {
                         className="text-white font-bold"
                         style={{
                           fontFamily: 'var(--font-display)',
-                          fontSize: candidate.name.length > 22 ? '28px' : candidate.name.length > 16 ? '36px' : '48px',
+                          fontSize: candidate.name.length > 22 ? '32px' : candidate.name.length > 16 ? '40px' : '52px',
                           lineHeight: 1.15,
                           overflowWrap: 'break-word',
                           wordBreak: 'break-word',

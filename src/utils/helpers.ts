@@ -173,6 +173,8 @@ export function getCustomers(rekening: Rekening[]): Customer[] {
         totalBalance: 0,
         totalLastBalance: 0,
         displayAccNo: '',
+        ticketStart: 0,
+        ticketEnd: 0,
       });
     }
     const c = map.get(k)!;
@@ -183,11 +185,22 @@ export function getCustomers(rekening: Rekening[]): Customer[] {
     if (!c.name && r.name) c.name = r.name;
     if (!c.branch && r.branch) c.branch = r.branch;
   }
-  for (const c of map.values()) {
+  const customers = [...map.values()];
+  for (const c of customers) {
     c.displayAccount = c.accounts.slice().sort((a, b) => avgBalanceRek(b) - avgBalanceRek(a))[0];
     c.displayAccNo = c.displayAccount?.accNo || '';
   }
-  return [...map.values()];
+  // Assign globally unique ticket ranges sorted deterministically by key
+  customers.sort((a, b) => a.key.localeCompare(b.key));
+  let offset = 0;
+  for (const c of customers) {
+    if (c.totalPoints > 0) {
+      c.ticketStart = offset + 1;
+      c.ticketEnd = offset + c.totalPoints;
+      offset += c.totalPoints;
+    }
+  }
+  return customers;
 }
 
 export function eligibleCustomersFor(grade: Grade, rekening: Rekening[]): Customer[] {
@@ -205,10 +218,16 @@ export function drawTicket(
   const drawn = Math.floor(Math.random() * totalTickets) + 1;
   let offset = 0;
   for (const c of eligibles) {
+    const prev = offset;
     offset += c.totalPoints;
-    if (drawn <= offset) return { customer: c, ticketNo: drawn };
+    if (drawn <= offset) {
+      // Map position within eligible pool to global ticket number
+      const posInChunk = drawn - prev;
+      return { customer: c, ticketNo: c.ticketStart + posInChunk - 1 };
+    }
   }
-  return { customer: eligibles[eligibles.length - 1], ticketNo: drawn };
+  const last = eligibles[eligibles.length - 1];
+  return { customer: last, ticketNo: last.ticketEnd };
 }
 
 export function maskAcc(acc: string): string {
