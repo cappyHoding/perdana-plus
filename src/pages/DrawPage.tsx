@@ -465,10 +465,10 @@ export default function DrawPage() {
           {/* ── Draw Header ── */}
           <div className="flex items-center justify-between w-full shrink-0">
             <div>
-              <div className="text-xs font-semibold uppercase tracking-widest text-ink-2 mb-0.5">
+              <div className="text-xs font-semibold uppercase tracking-widest mb-0.5" style={{ color: '#fff' }}>
                 Pengundian Hadiah Tahunan
               </div>
-              <h1 className="text-2xl font-extrabold text-ink" style={{ fontFamily: 'var(--font-display)' }}>
+              <h1 className="text-2xl font-extrabold" style={{ fontFamily: 'var(--font-display)', color: 'var(--yellow)' }}>
                 Tabungan Perdana <em className="not-italic text-red">Plus</em>
               </h1>
             </div>
