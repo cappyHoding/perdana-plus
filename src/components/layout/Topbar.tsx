@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { path: '/grade', label: 'Grade' },
   { path: '/hadiah', label: 'Hadiah' },
   { path: '/riwayat', label: 'Riwayat' },
+  { path: '/tiket', label: 'No. Undian' },
   { path: '/draw', label: 'Pengundian', isDraw: true },
 ];
 
